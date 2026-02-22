@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-class Value {
+export class Value {
   data: number;
   grad: number;
   private _prev: Set<Value>;
@@ -97,14 +97,14 @@ class Value {
   }
 }
 
-function randn(rng: () => number, mean = 0, std = 1): number {
+export function randn(rng: () => number, mean = 0, std = 1): number {
   const u1 = Math.max(rng(), 1e-12);
   const u2 = rng();
   const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
   return mean + std * z0;
 }
 
-function makeRng(seed = 1337): () => number {
+export function makeRng(seed = 1337): () => number {
   let s = seed >>> 0;
   return () => {
     s ^= s << 13;
@@ -115,13 +115,13 @@ function makeRng(seed = 1337): () => number {
 }
 
 // --- Model constants (Python-aligned) ---
-const n_layer = 1;
-const n_embd = 16;
-const block_size = 16;
-const n_head = 4;
-const head_dim = Math.floor(n_embd / n_head);
+export const n_layer = 1;
+export const n_embd = 16;
+export const block_size = 16;
+export const n_head = 4;
+export const head_dim = Math.floor(n_embd / n_head);
 
-function matrix(
+export function matrix(
   nout: number,
   nin: number,
   rng: () => number,
@@ -132,18 +132,18 @@ function matrix(
   );
 }
 
-function linear(x: Value[], w: Value[][]): Value[] {
+export function linear(x: Value[], w: Value[][]): Value[] {
   return w.map((wo) => wo.reduce((sum, wi, i) => sum.add(wi.mul(x[i])), new Value(0)));
 }
 
-function softmaxValue(logits: Value[]): Value[] {
+export function softmaxValue(logits: Value[]): Value[] {
   const maxVal = logits.reduce((m, v) => (v.data > m ? v.data : m), -Infinity);
   const exps = logits.map((v) => v.sub(maxVal).exp());
   const total = exps.reduce((s, e) => s.add(e), new Value(0));
   return exps.map((e) => e.div(total));
 }
 
-function rmsnorm(x: Value[], eps = 1e-5): Value[] {
+export function rmsnorm(x: Value[], eps = 1e-5): Value[] {
   const n = x.length;
   let ms = new Value(0);
   for (const xi of x) ms = ms.add(xi.mul(xi));
@@ -152,14 +152,14 @@ function rmsnorm(x: Value[], eps = 1e-5): Value[] {
   return x.map((xi) => xi.mul(scale));
 }
 
-function softmax(logits: number[]): number[] {
+export function softmax(logits: number[]): number[] {
   const maxLogit = Math.max(...logits);
   const exps = logits.map((x) => Math.exp(x - maxLogit));
   const sum = exps.reduce((a, b) => a + b, 0);
   return exps.map((e) => e / sum);
 }
 
-function sampleCategorical(probs: number[], rng: () => number): number {
+export function sampleCategorical(probs: number[], rng: () => number): number {
   const r = rng();
   let c = 0;
   for (let i = 0; i < probs.length; i++) {
@@ -169,7 +169,7 @@ function sampleCategorical(probs: number[], rng: () => number): number {
   return probs.length - 1;
 }
 
-function sparkline(values: number[], width = 64): string {
+export function sparkline(values: number[], width = 64): string {
   if (values.length === 0) return '';
   const chars = ' .:-=+*#%@';
   const slice = values.slice(Math.max(0, values.length - width));
@@ -185,7 +185,7 @@ function sparkline(values: number[], width = 64): string {
     .join('');
 }
 
-function topKIndices(arr: number[], k: number): number[] {
+export function topKIndices(arr: number[], k: number): number[] {
   return [...arr.keys()].sort((a, b) => arr[b] - arr[a]).slice(0, k);
 }
 
@@ -352,81 +352,87 @@ function generate(maxTokens = 60, temp = temperature): string {
   return sample.join('');
 }
 
-const history: number[] = [];
+function main(): void {
+  const history: number[] = [];
 
-for (let step = 0; step < num_steps; step++) {
-  const doc = docs[step % docs.length];
-  const tokens = encodeDoc(doc);
-  const n = Math.min(block_size, tokens.length - 1);
+  for (let step = 0; step < num_steps; step++) {
+    const doc = docs[step % docs.length];
+    const tokens = encodeDoc(doc);
+    const n = Math.min(block_size, tokens.length - 1);
 
-  if (n < 1) {
-    history.push(0);
-    continue;
-  }
-
-  const keys: Value[][][] = Array.from({ length: n_layer }, () => []);
-  const values: Value[][][] = Array.from({ length: n_layer }, () => []);
-
-  const losses: Value[] = [];
-  for (let pos_id = 0; pos_id < n; pos_id++) {
-    const token_id = tokens[pos_id];
-    const target_id = tokens[pos_id + 1];
-    const logits = gpt(token_id, pos_id, keys, values);
-    const probs = softmaxValue(logits);
-    losses.push(probs[target_id].log().mul(-1));
-  }
-
-  let loss = losses[0];
-  for (let i = 1; i < losses.length; i++) loss = loss.add(losses[i]);
-  loss = loss.div(n);
-
-  for (const p of params) p.grad = 0;
-  loss.backward();
-
-  const lr_t = learning_rate * (1 - step / num_steps);
-  for (let i = 0; i < params.length; i++) {
-    const p = params[i];
-    m[i] = beta1 * m[i] + (1 - beta1) * p.grad;
-    v[i] = beta2 * v[i] + (1 - beta2) * p.grad * p.grad;
-    const m_hat = m[i] / (1 - Math.pow(beta1, step + 1));
-    const v_hat = v[i] / (1 - Math.pow(beta2, step + 1));
-    p.data -= lr_t * m_hat / (Math.sqrt(v_hat) + eps_adam);
-    p.grad = 0;
-  }
-
-  history.push(loss.data);
-
-  if (step % evalEvery === 0 || step === num_steps - 1) {
-    const trainLoss = estimateLoss(trainWords, 200);
-    const devLoss = estimateLoss(devWords.length ? devWords : trainWords, 200);
-    const testLoss = estimateLoss(testWords.length ? testWords : trainWords, 200);
-
-    const probeKeys: Value[][][] = Array.from({ length: n_layer }, () => []);
-    const probeValues: Value[][][] = Array.from({ length: n_layer }, () => []);
-    const probeLogits = gpt(BOS, 0, probeKeys, probeValues);
-    const probeProbsArr = softmaxValue(probeLogits).map((p) => p.data);
-    const top = topKIndices(probeProbsArr, Math.min(6, probeProbsArr.length));
-
-    process.stdout.write('\x1Bc');
-    console.log('microgpt.ts (TypeScript port + live visual)');
-    console.log(`step ${step + 1}/${maxSteps}`);
-    console.log(`loss train=${trainLoss.toFixed(4)} dev=${devLoss.toFixed(4)} test=${testLoss.toFixed(4)}`);
-    console.log(`batch loss: ${loss.data.toFixed(4)}`);
-    console.log('loss history:');
-    console.log(sparkline(history, 80));
-    console.log('sample:');
-    console.log(generate(60));
-    console.log('next-char probs for context "...":');
-    for (const idx of top) {
-      const label: string = idx === BOS ? '.' : (uchars[idx] ?? '?');
-      const p = probeProbsArr[idx];
-      const bar = '#'.repeat(Math.max(1, Math.round(p * 50)));
-      console.log(`${label.padEnd(2)} ${bar} ${p.toFixed(3)}`);
+    if (n < 1) {
+      history.push(0);
+      continue;
     }
+
+    const keys: Value[][][] = Array.from({ length: n_layer }, () => []);
+    const values: Value[][][] = Array.from({ length: n_layer }, () => []);
+
+    const losses: Value[] = [];
+    for (let pos_id = 0; pos_id < n; pos_id++) {
+      const token_id = tokens[pos_id];
+      const target_id = tokens[pos_id + 1];
+      const logits = gpt(token_id, pos_id, keys, values);
+      const probs = softmaxValue(logits);
+      losses.push(probs[target_id].log().mul(-1));
+    }
+
+    let loss = losses[0];
+    for (let i = 1; i < losses.length; i++) loss = loss.add(losses[i]);
+    loss = loss.div(n);
+
+    for (const p of params) p.grad = 0;
+    loss.backward();
+
+    const lr_t = learning_rate * (1 - step / num_steps);
+    for (let i = 0; i < params.length; i++) {
+      const p = params[i];
+      m[i] = beta1 * m[i] + (1 - beta1) * p.grad;
+      v[i] = beta2 * v[i] + (1 - beta2) * p.grad * p.grad;
+      const m_hat = m[i] / (1 - Math.pow(beta1, step + 1));
+      const v_hat = v[i] / (1 - Math.pow(beta2, step + 1));
+      p.data -= lr_t * m_hat / (Math.sqrt(v_hat) + eps_adam);
+      p.grad = 0;
+    }
+
+    history.push(loss.data);
+
+    if (step % evalEvery === 0 || step === num_steps - 1) {
+      const trainLoss = estimateLoss(trainWords, 200);
+      const devLoss = estimateLoss(devWords.length ? devWords : trainWords, 200);
+      const testLoss = estimateLoss(testWords.length ? testWords : trainWords, 200);
+
+      const probeKeys: Value[][][] = Array.from({ length: n_layer }, () => []);
+      const probeValues: Value[][][] = Array.from({ length: n_layer }, () => []);
+      const probeLogits = gpt(BOS, 0, probeKeys, probeValues);
+      const probeProbsArr = softmaxValue(probeLogits).map((p) => p.data);
+      const top = topKIndices(probeProbsArr, Math.min(6, probeProbsArr.length));
+
+      process.stdout.write('\x1Bc');
+      console.log('microgpt.ts (TypeScript port + live visual)');
+      console.log(`step ${step + 1}/${maxSteps}`);
+      console.log(`loss train=${trainLoss.toFixed(4)} dev=${devLoss.toFixed(4)} test=${testLoss.toFixed(4)}`);
+      console.log(`batch loss: ${loss.data.toFixed(4)}`);
+      console.log('loss history:');
+      console.log(sparkline(history, 80));
+      console.log('sample:');
+      console.log(generate(60));
+      console.log('next-char probs for context "...":');
+      for (const idx of top) {
+        const label: string = idx === BOS ? '.' : (uchars[idx] ?? '?');
+        const p = probeProbsArr[idx];
+        const bar = '#'.repeat(Math.max(1, Math.round(p * 50)));
+        console.log(`${label.padEnd(2)} ${bar} ${p.toFixed(3)}`);
+      }
+    }
+  }
+
+  console.log('\nFinal samples:');
+  for (let i = 0; i < 12; i++) {
+    console.log(generate(60));
   }
 }
 
-console.log('\nFinal samples:');
-for (let i = 0; i < 12; i++) {
-  console.log(generate(60));
+if (!process.env.VITEST) {
+  main();
 }
