@@ -200,7 +200,8 @@ if (docs.length < 2) {
   throw new Error('Geen geldige dataset gevonden. Voeg meerdere regels toe aan input.txt');
 }
 
-const uchars: string[] = Array.from(new Set(text.replace(/\r/g, '').split(''))).sort();
+// Match Python: uchars = sorted(set(''.join(docs))) — only chars that appear in documents
+const uchars: string[] = Array.from(new Set(docs.join('').split(''))).sort();
 const BOS = uchars.length;
 const vocab_size = uchars.length + 1;
 
@@ -222,7 +223,9 @@ function randomShuffle<T>(arr: T[], rngFn: () => number): T[] {
 }
 
 const rng = makeRng(42);
-const shuffled = randomShuffle(docs, rng);
+const shuffled = randomShuffle([...docs], rng);
+// Training uses shuffled order to match Python: doc = docs[step % len(docs)] after shuffle
+const trainDocs = shuffled;
 const n1 = Math.floor(0.8 * shuffled.length);
 const n2 = Math.floor(0.9 * shuffled.length);
 const trainWords: string[] = shuffled.slice(0, n1);
@@ -356,7 +359,7 @@ function main(): void {
   const history: number[] = [];
 
   for (let step = 0; step < num_steps; step++) {
-    const doc = docs[step % docs.length];
+    const doc = trainDocs[step % trainDocs.length];
     const tokens = encodeDoc(doc);
     const n = Math.min(block_size, tokens.length - 1);
 
