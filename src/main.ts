@@ -244,6 +244,16 @@ app.innerHTML = `
       <p class="mt-4 max-w-3xl text-sm text-white/75 md:text-base">This dashboard explains each phase of microGPT and updates it with real values while training: context tokens, probabilities, loss, gradient norm, and SGD updates.</p>
     </header>
 
+    <section class="mb-4">
+      <div class="panel p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="panel-title mb-0">Generated name</p>
+          <button id="sampleBtn" class="rounded-lg border border-butter/50 px-4 py-2 text-sm font-semibold text-butter hover:bg-butter/10">Generate</button>
+        </div>
+        <pre id="sample" class="mono mt-3 min-h-14 whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-3 text-lg text-neon"></pre>
+      </div>
+    </section>
+
     <section class="mb-4 grid gap-4 lg:grid-cols-3">
       <div class="panel p-4 lg:col-span-1">
         <p class="panel-title">Controls</p>
@@ -263,7 +273,6 @@ app.innerHTML = `
           <button id="startBtn" class="rounded-lg bg-neon px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110">Start</button>
           <button id="pauseBtn" class="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">Pause</button>
           <button id="resetBtn" class="rounded-lg border border-coral/50 px-4 py-2 text-sm font-semibold text-coral hover:bg-coral/10">Reset</button>
-          <button id="sampleBtn" class="rounded-lg border border-butter/50 px-4 py-2 text-sm font-semibold text-butter hover:bg-butter/10">Generate</button>
         </div>
 
         <div class="mt-4 space-y-2 text-xs text-white/60">
@@ -322,15 +331,7 @@ app.innerHTML = `
       </div>
     </section>
 
-    <section class="grid gap-4 lg:grid-cols-2">
-      <div class="panel p-4">
-        <div class="flex items-center justify-between">
-          <p class="panel-title">Sample Output</p>
-          <span class="rounded-full border border-white/20 px-2 py-1 text-xs text-white/60">live</span>
-        </div>
-        <pre id="sample" class="mono mt-3 min-h-20 whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-neon"></pre>
-      </div>
-
+    <section class="grid gap-4 lg:grid-cols-1">
       <div class="panel p-4">
         <p class="panel-title">Probabilities (Current Step)</p>
         <div id="tokenBars" class="mt-3 space-y-2"></div>
