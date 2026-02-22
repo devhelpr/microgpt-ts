@@ -34,3 +34,18 @@ code,
 .meter-fill {
   background: linear-gradient(90deg, #44f2d9 0%, #ffe08c 55%, #ff7e6b 100%);
 }
+
+.flow-node {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.flow-node.active {
+  border-color: rgba(68, 242, 217, 0.8);
+  background-color: rgba(68, 242, 217, 0.12);
+  box-shadow: 0 0 0 1px rgba(68, 242, 217, 0.35), 0 18px 45px rgba(68, 242, 217, 0.16);
+  transform: translateY(-1px);
+}

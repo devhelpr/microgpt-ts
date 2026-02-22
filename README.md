@@ -21,6 +21,8 @@ Open daarna de lokale Vite URL (meestal `http://localhost:5173`).
 - Progress bar
 - Live samples
 - Top-k token probability bars
+- Full algorithm flow visualizer (dataset -> encoding -> context -> forward -> softmax -> loss -> backprop -> update)
+- Live step breakdown (context ids/tokens, target vs prediction, learning rate, gradient norm)
 - Dataset en hyperparameter controls
 
 ## CLI run
