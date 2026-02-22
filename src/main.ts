@@ -89,7 +89,7 @@ if (!app) throw new Error('App root not found');
 
 function stepExplainerDialogHtml(stage: FlowStage): string {
   const markerId = `arr-${stage.id}`;
-  const arrowMarker = `<defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity="0.95"/></marker></defs>`;
+  const arrowMarker = `<defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity="0.95"/></marker></defs>`;
   const strokeArrow = `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7" marker-end="url(#${markerId})"`;
   const strokeLine = 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.5"';
   const illustrations: Record<string, string> = {
