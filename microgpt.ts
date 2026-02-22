@@ -71,6 +71,13 @@ class Value {
     return out;
   }
 
+  relu(): Value {
+    const out = new Value(Math.max(0, this.data), [this], () => {
+      this.grad += (this.data > 0 ? 1 : 0) * out.grad;
+    });
+    return out;
+  }
+
   backward(): void {
     const topo: Value[] = [];
     const visited = new Set<Value>();
@@ -107,177 +114,42 @@ function makeRng(seed = 1337): () => number {
   };
 }
 
-class Neuron {
-  w: Value[];
-  b: Value;
-  nonlin: boolean;
+// --- Model constants (Python-aligned) ---
+const n_layer = 1;
+const n_embd = 16;
+const block_size = 16;
+const n_head = 4;
+const head_dim = Math.floor(n_embd / n_head);
 
-  constructor(nin: number, rng: () => number, nonlin = true) {
-    this.w = Array.from({ length: nin }, () => new Value(randn(rng, 0, 1)));
-    this.b = new Value(0);
-    this.nonlin = nonlin;
-  }
-
-  call(x: Value[]): Value {
-    let act = this.b;
-    for (let i = 0; i < x.length; i++) {
-      act = act.add(this.w[i].mul(x[i]));
-    }
-    return this.nonlin ? act.tanh() : act;
-  }
-
-  parameters(): Value[] {
-    return [...this.w, this.b];
-  }
+function matrix(
+  nout: number,
+  nin: number,
+  rng: () => number,
+  std = 0.08,
+): Value[][] {
+  return Array.from({ length: nout }, () =>
+    Array.from({ length: nin }, () => new Value(randn(rng, 0, std))),
+  );
 }
 
-class Layer {
-  neurons: Neuron[];
-
-  constructor(nin: number, nout: number, rng: () => number, nonlin = true) {
-    this.neurons = Array.from({ length: nout }, () => new Neuron(nin, rng, nonlin));
-  }
-
-  call(x: Value[]): Value[] {
-    return this.neurons.map((n) => n.call(x));
-  }
-
-  parameters(): Value[] {
-    return this.neurons.flatMap((n) => n.parameters());
-  }
+function linear(x: Value[], w: Value[][]): Value[] {
+  return w.map((wo) => wo.reduce((sum, wi, i) => sum.add(wi.mul(x[i])), new Value(0)));
 }
 
-class MLP {
-  layers: Layer[];
-
-  constructor(nin: number, nouts: number[], rng: () => number) {
-    const sz = [nin, ...nouts];
-    this.layers = [];
-    for (let i = 0; i < nouts.length; i++) {
-      this.layers.push(new Layer(sz[i], sz[i + 1], rng, i !== nouts.length - 1));
-    }
-  }
-
-  call(x: Value[]): Value[] {
-    let out = x;
-    for (const layer of this.layers) {
-      out = layer.call(out);
-    }
-    return out;
-  }
-
-  parameters(): Value[] {
-    return this.layers.flatMap((l) => l.parameters());
-  }
+function softmaxValue(logits: Value[]): Value[] {
+  const maxVal = logits.reduce((m, v) => (v.data > m ? v.data : m), -Infinity);
+  const exps = logits.map((v) => v.sub(maxVal).exp());
+  const total = exps.reduce((s, e) => s.add(e), new Value(0));
+  return exps.map((e) => e.div(total));
 }
 
-class LayerNorm {
-  gamma: Value[];
-  beta: Value[];
-  eps: number;
-
-  constructor(dim: number, eps = 1e-5) {
-    this.gamma = Array.from({ length: dim }, () => new Value(1));
-    this.beta = Array.from({ length: dim }, () => new Value(0));
-    this.eps = eps;
-  }
-
-  call(x: Value[]): Value[] {
-    const n = x.length;
-    let mean = new Value(0);
-    for (const xi of x) mean = mean.add(xi);
-    mean = mean.div(n);
-
-    let variance = new Value(0);
-    for (const xi of x) {
-      variance = variance.add(xi.sub(mean).pow(2));
-    }
-    variance = variance.div(n);
-    const std = variance.add(this.eps).pow(0.5);
-
-    const out: Value[] = [];
-    for (let i = 0; i < n; i++) {
-      out.push(x[i].sub(mean).div(std).mul(this.gamma[i]).add(this.beta[i]));
-    }
-    return out;
-  }
-
-  parameters(): Value[] {
-    return [...this.gamma, ...this.beta];
-  }
-}
-
-class Linear {
-  w: Value[][];
-  b: Value[];
-
-  constructor(fanIn: number, fanOut: number, rng: () => number) {
-    const std = 1 / Math.sqrt(fanIn);
-    this.w = Array.from({ length: fanOut }, () =>
-      Array.from({ length: fanIn }, () => new Value(randn(rng, 0, std))),
-    );
-    this.b = Array.from({ length: fanOut }, () => new Value(0));
-  }
-
-  call(x: Value[]): Value[] {
-    const out: Value[] = [];
-    for (let o = 0; o < this.w.length; o++) {
-      let v = this.b[o];
-      for (let i = 0; i < x.length; i++) {
-        v = v.add(this.w[o][i].mul(x[i]));
-      }
-      out.push(v);
-    }
-    return out;
-  }
-
-  parameters(): Value[] {
-    return [...this.w.flat(), ...this.b];
-  }
-}
-
-class BigramLanguageModel {
-  vocabSize: number;
-  blockSize: number;
-  nEmbd: number;
-  wte: number[][];
-  wpe: number[][];
-  mlp: MLP;
-  ln: LayerNorm;
-  lmHead: Linear;
-
-  constructor(vocabSize: number, blockSize: number, nEmbd: number, rng: () => number) {
-    this.vocabSize = vocabSize;
-    this.blockSize = blockSize;
-    this.nEmbd = nEmbd;
-    this.wte = Array.from({ length: vocabSize }, () =>
-      Array.from({ length: nEmbd }, () => randn(rng, 0, 0.2)),
-    );
-    this.wpe = Array.from({ length: blockSize }, () =>
-      Array.from({ length: nEmbd }, () => randn(rng, 0, 0.2)),
-    );
-    this.mlp = new MLP(nEmbd, [nEmbd], rng);
-    this.ln = new LayerNorm(nEmbd);
-    this.lmHead = new Linear(nEmbd, vocabSize, rng);
-  }
-
-  call(idx: number[]): Value[] {
-    const t = idx.length;
-    let lastHidden: Value[] = [];
-
-    for (let pos = 0; pos < t; pos++) {
-      const tokEmb = this.wte[idx[pos]];
-      const posEmb = this.wpe[pos];
-      const x = tokEmb.map((v, i) => new Value(v + posEmb[i]));
-      lastHidden = this.ln.call(this.mlp.call(x));
-    }
-
-    return this.lmHead.call(lastHidden);
-  }
-
-  parameters(): Value[] {
-    return [...this.mlp.parameters(), ...this.ln.parameters(), ...this.lmHead.parameters()];
-  }
+function rmsnorm(x: Value[], eps = 1e-5): Value[] {
+  const n = x.length;
+  let ms = new Value(0);
+  for (const xi of x) ms = ms.add(xi.mul(xi));
+  ms = ms.div(n);
+  const scale = ms.add(eps).pow(-0.5);
+  return x.map((xi) => xi.mul(scale));
 }
 
 function softmax(logits: number[]): number[] {
@@ -285,14 +157,6 @@ function softmax(logits: number[]): number[] {
   const exps = logits.map((x) => Math.exp(x - maxLogit));
   const sum = exps.reduce((a, b) => a + b, 0);
   return exps.map((e) => e / sum);
-}
-
-function crossEntropy(logits: Value[], target: number): Value {
-  const exps = logits.map((v) => v.exp());
-  let sumExp = new Value(0);
-  for (const e of exps) sumExp = sumExp.add(e);
-  const probs = exps.map((e) => e.div(sumExp));
-  return probs[target].log().mul(-1);
 }
 
 function sampleCategorical(probs: number[], rng: () => number): number {
@@ -325,54 +189,27 @@ function topKIndices(arr: number[], k: number): number[] {
   return [...arr.keys()].sort((a, b) => arr[b] - arr[a]).slice(0, k);
 }
 
-const rng = makeRng(1337);
-
-const defaultText = `anna\nbob\ncarla\ndiana\nelias\nfrank\n`; 
+const defaultText = `anna\nbob\ncarla\ndiana\nelias\nfrank\n`;
 const text = fs.existsSync('input.txt') ? fs.readFileSync('input.txt', 'utf8') : defaultText;
-const words = text
+const docs: string[] = text
   .split(/\r?\n/)
-  .map((w) => w.trim())
-  .filter((w) => w.length > 0);
+  .map((line: string) => line.trim())
+  .filter((line: string) => line.length > 0);
 
-if (words.length < 2) {
+if (docs.length < 2) {
   throw new Error('Geen geldige dataset gevonden. Voeg meerdere regels toe aan input.txt');
 }
 
-const chars = Array.from(new Set(text.replace(/\r/g, '').split(''))).sort();
-const stoi = new Map<string, number>();
+const uchars: string[] = Array.from(new Set(text.replace(/\r/g, '').split(''))).sort();
+const BOS = uchars.length;
+const vocab_size = uchars.length + 1;
+
 const itos = new Map<number, string>();
-chars.forEach((ch, i) => {
-  stoi.set(ch, i + 1);
-  itos.set(i + 1, ch);
-});
-stoi.set('.', 0);
-itos.set(0, '.');
+uchars.forEach((ch, i) => itos.set(i, ch));
+itos.set(BOS, '.');
 
-const vocabSize = stoi.size;
-
-function encode(s: string): number[] {
-  return s.split('').map((c) => stoi.get(c) ?? 0);
-}
-
-function decode(ids: number[]): string {
-  return ids.map((i) => itos.get(i) ?? '?').join('');
-}
-
-function buildDataset(ws: string[], blockSize: number): { X: number[][]; Y: number[] } {
-  const X: number[][] = [];
-  const Y: number[] = [];
-
-  for (const w of ws) {
-    let context = Array(blockSize).fill(0);
-    const encoded = encode(w + '.');
-    for (const ch of encoded) {
-      X.push([...context]);
-      Y.push(ch);
-      context = [...context.slice(1), ch];
-    }
-  }
-
-  return { X, Y };
+function encodeDoc(doc: string): number[] {
+  return [BOS, ...doc.split('').map((c) => uchars.indexOf(c)), BOS];
 }
 
 function randomShuffle<T>(arr: T[], rngFn: () => number): T[] {
@@ -384,83 +221,191 @@ function randomShuffle<T>(arr: T[], rngFn: () => number): T[] {
   return out;
 }
 
-const shuffled = randomShuffle(words, rng);
+const rng = makeRng(42);
+const shuffled = randomShuffle(docs, rng);
 const n1 = Math.floor(0.8 * shuffled.length);
 const n2 = Math.floor(0.9 * shuffled.length);
-const trainWords = shuffled.slice(0, n1);
-const devWords = shuffled.slice(n1, n2);
-const testWords = shuffled.slice(n2);
+const trainWords: string[] = shuffled.slice(0, n1);
+const devWords: string[] = shuffled.slice(n1, n2);
+const testWords: string[] = shuffled.slice(n2);
 
-const blockSize = 3;
-const nEmbd = 10;
-const model = new BigramLanguageModel(vocabSize, blockSize, nEmbd, rng);
-const parameters = model.parameters();
-
-const train = buildDataset(trainWords, blockSize);
-const dev = buildDataset(devWords.length ? devWords : trainWords, blockSize);
-const test = buildDataset(testWords.length ? testWords : trainWords, blockSize);
-
-function sampleExample(split: { X: number[][]; Y: number[] }): { x: number[]; y: number } {
-  const i = Math.floor(rng() * split.X.length);
-  return { x: split.X[i], y: split.Y[i] };
+const rngParams = makeRng(42);
+const state_dict: Record<string, Value[][]> = {};
+state_dict['wte'] = matrix(vocab_size, n_embd, rngParams);
+state_dict['wpe'] = matrix(block_size, n_embd, rngParams);
+state_dict['lm_head'] = matrix(vocab_size, n_embd, rngParams);
+for (let i = 0; i < n_layer; i++) {
+  state_dict[`layer${i}.attn_wq`] = matrix(n_embd, n_embd, rngParams);
+  state_dict[`layer${i}.attn_wk`] = matrix(n_embd, n_embd, rngParams);
+  state_dict[`layer${i}.attn_wv`] = matrix(n_embd, n_embd, rngParams);
+  state_dict[`layer${i}.attn_wo`] = matrix(n_embd, n_embd, rngParams);
+  state_dict[`layer${i}.mlp_fc1`] = matrix(4 * n_embd, n_embd, rngParams);
+  state_dict[`layer${i}.mlp_fc2`] = matrix(n_embd, 4 * n_embd, rngParams);
 }
 
-function estimateLoss(split: { X: number[][]; Y: number[] }, batches = 128): number {
-  let total = 0;
-  const n = Math.min(batches, split.X.length);
-  for (let i = 0; i < n; i++) {
-    const { x, y } = sampleExample(split);
-    const logits = model.call(x);
-    const loss = crossEntropy(logits, y);
-    total += loss.data;
+const params: Value[] = [];
+for (const mat of Object.values(state_dict) as Value[][][]) {
+  for (const row of mat) for (const p of row) params.push(p);
+}
+
+function gpt(
+  token_id: number,
+  pos_id: number,
+  keys: Value[][][],
+  values: Value[][][],
+): Value[] {
+  const tok_emb = state_dict['wte'][token_id];
+  const pos_emb = state_dict['wpe'][pos_id];
+  let x = tok_emb.map((t, i) => t.add(pos_emb[i]));
+  x = rmsnorm(x);
+
+  for (let li = 0; li < n_layer; li++) {
+    const x_residual = x;
+    x = rmsnorm(x);
+    const q = linear(x, state_dict[`layer${li}.attn_wq`]);
+    const k = linear(x, state_dict[`layer${li}.attn_wk`]);
+    const v = linear(x, state_dict[`layer${li}.attn_wv`]);
+    keys[li].push(k);
+    values[li].push(v);
+
+    const x_attn: Value[] = [];
+    for (let h = 0; h < n_head; h++) {
+      const hs = h * head_dim;
+      const q_h = q.slice(hs, hs + head_dim);
+      const k_h = keys[li].map((ki) => ki.slice(hs, hs + head_dim));
+      const v_h = values[li].map((vi) => vi.slice(hs, hs + head_dim));
+      const attn_logits = k_h.map((k_t) =>
+        q_h.reduce((s, qj, j) => s.add(qj.mul(k_t[j])), new Value(0)).div(Math.pow(head_dim, 0.5)),
+      );
+      const attn_weights = softmaxValue(attn_logits);
+      for (let j = 0; j < head_dim; j++) {
+        let head_out = new Value(0);
+        for (let t = 0; t < v_h.length; t++) {
+          head_out = head_out.add(attn_weights[t].mul(v_h[t][j]));
+        }
+        x_attn.push(head_out);
+      }
+    }
+    x = linear(x_attn, state_dict[`layer${li}.attn_wo`]).map((a, i) => a.add(x_residual[i]));
+
+    const x_residual2 = x;
+    x = rmsnorm(x);
+    x = linear(x, state_dict[`layer${li}.mlp_fc1`]).map((xi) => xi.relu());
+    x = linear(x, state_dict[`layer${li}.mlp_fc2`]).map((a, i) => a.add(x_residual2[i]));
   }
-  return total / n;
+
+  return linear(x, state_dict['lm_head']);
 }
 
-function generate(maxTokens = 40): string {
-  let context = Array(blockSize).fill(0);
-  const out: number[] = [];
-
-  for (let i = 0; i < maxTokens; i++) {
-    const logits = model.call(context);
-    const probs = softmax(logits.map((v) => v.data));
-    const ix = sampleCategorical(probs, rng);
-    context = [...context.slice(1), ix];
-    out.push(ix);
-    if (ix === 0) break;
-  }
-
-  return decode(out);
-}
-
-const maxSteps = 1000;
+const learning_rate = 0.01;
+const beta1 = 0.85;
+const beta2 = 0.99;
+const eps_adam = 1e-8;
+const num_steps = 1000;
+const maxSteps = num_steps;
 const evalEvery = 25;
+const temperature = 0.5;
+
+const m: number[] = Array(params.length).fill(0);
+const v: number[] = Array(params.length).fill(0);
+
+function estimateLoss(split: string[], batches = 128): number {
+  let total = 0;
+  let count = 0;
+  const n = Math.min(batches, split.length);
+  for (let i = 0; i < n; i++) {
+    const doc = split[i];
+    const tokens = encodeDoc(doc);
+    const seqLen = Math.min(block_size, tokens.length - 1);
+    if (seqLen < 1) continue;
+    const keys: Value[][][] = Array.from({ length: n_layer }, () => []);
+    const values: Value[][][] = Array.from({ length: n_layer }, () => []);
+    let docLoss = 0;
+    for (let pos_id = 0; pos_id < seqLen; pos_id++) {
+      const token_id = tokens[pos_id];
+      const target_id = tokens[pos_id + 1];
+      const logits = gpt(token_id, pos_id, keys, values);
+      const probs = softmaxValue(logits);
+      docLoss += -Math.log(probs[target_id].data + 1e-10);
+    }
+    total += docLoss / seqLen;
+    count += 1;
+  }
+  return count > 0 ? total / count : 0;
+}
+
+function generate(maxTokens = 60, temp = temperature): string {
+  const keys: Value[][][] = Array.from({ length: n_layer }, () => []);
+  const values: Value[][][] = Array.from({ length: n_layer }, () => []);
+  let token_id = BOS;
+  const sample: string[] = [];
+
+  for (let pos_id = 0; pos_id < block_size; pos_id++) {
+    const logits = gpt(token_id, pos_id, keys, values);
+    const scaled = logits.map((l) => l.data / temp);
+    const probs = softmax(scaled);
+    token_id = sampleCategorical(probs, rng);
+    if (token_id === BOS) break;
+    sample.push(uchars[token_id]);
+    if (sample.length >= maxTokens) break;
+  }
+  return sample.join('');
+}
+
 const history: number[] = [];
 
-for (let step = 0; step < maxSteps; step++) {
-  const { x, y } = sampleExample(train);
-  const logits = model.call(x);
-  const loss = crossEntropy(logits, y);
+for (let step = 0; step < num_steps; step++) {
+  const doc = docs[step % docs.length];
+  const tokens = encodeDoc(doc);
+  const n = Math.min(block_size, tokens.length - 1);
 
-  for (const p of parameters) p.grad = 0;
+  if (n < 1) {
+    history.push(0);
+    continue;
+  }
+
+  const keys: Value[][][] = Array.from({ length: n_layer }, () => []);
+  const values: Value[][][] = Array.from({ length: n_layer }, () => []);
+
+  const losses: Value[] = [];
+  for (let pos_id = 0; pos_id < n; pos_id++) {
+    const token_id = tokens[pos_id];
+    const target_id = tokens[pos_id + 1];
+    const logits = gpt(token_id, pos_id, keys, values);
+    const probs = softmaxValue(logits);
+    losses.push(probs[target_id].log().mul(-1));
+  }
+
+  let loss = losses[0];
+  for (let i = 1; i < losses.length; i++) loss = loss.add(losses[i]);
+  loss = loss.div(n);
+
+  for (const p of params) p.grad = 0;
   loss.backward();
 
-  const lr = step < 100 ? 0.05 : 0.02;
-  for (const p of parameters) {
-    p.data -= lr * p.grad;
+  const lr_t = learning_rate * (1 - step / num_steps);
+  for (let i = 0; i < params.length; i++) {
+    const p = params[i];
+    m[i] = beta1 * m[i] + (1 - beta1) * p.grad;
+    v[i] = beta2 * v[i] + (1 - beta2) * p.grad * p.grad;
+    const m_hat = m[i] / (1 - Math.pow(beta1, step + 1));
+    const v_hat = v[i] / (1 - Math.pow(beta2, step + 1));
+    p.data -= lr_t * m_hat / (Math.sqrt(v_hat) + eps_adam);
+    p.grad = 0;
   }
 
   history.push(loss.data);
 
-  if (step % evalEvery === 0 || step === maxSteps - 1) {
-    const trainLoss = estimateLoss(train, 200);
-    const devLoss = estimateLoss(dev, 200);
-    const testLoss = estimateLoss(test, 200);
+  if (step % evalEvery === 0 || step === num_steps - 1) {
+    const trainLoss = estimateLoss(trainWords, 200);
+    const devLoss = estimateLoss(devWords.length ? devWords : trainWords, 200);
+    const testLoss = estimateLoss(testWords.length ? testWords : trainWords, 200);
 
-    const probe = Array(blockSize).fill(0);
-    const probeLogits = model.call(probe).map((v) => v.data);
-    const probeProbs = softmax(probeLogits);
-    const top = topKIndices(probeProbs, Math.min(6, probeProbs.length));
+    const probeKeys: Value[][][] = Array.from({ length: n_layer }, () => []);
+    const probeValues: Value[][][] = Array.from({ length: n_layer }, () => []);
+    const probeLogits = gpt(BOS, 0, probeKeys, probeValues);
+    const probeProbsArr = softmaxValue(probeLogits).map((p) => p.data);
+    const top = topKIndices(probeProbsArr, Math.min(6, probeProbsArr.length));
 
     process.stdout.write('\x1Bc');
     console.log('microgpt.ts (TypeScript port + live visual)');
@@ -473,8 +418,8 @@ for (let step = 0; step < maxSteps; step++) {
     console.log(generate(60));
     console.log('next-char probs for context "...":');
     for (const idx of top) {
-      const label = itos.get(idx) ?? '?';
-      const p = probeProbs[idx];
+      const label: string = idx === BOS ? '.' : (uchars[idx] ?? '?');
+      const p = probeProbsArr[idx];
       const bar = '#'.repeat(Math.max(1, Math.round(p * 50)));
       console.log(`${label.padEnd(2)} ${bar} ${p.toFixed(3)}`);
     }
