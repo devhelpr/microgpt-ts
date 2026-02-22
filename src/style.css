@@ -49,3 +49,7 @@ code,
   box-shadow: 0 0 0 1px rgba(68, 242, 217, 0.35), 0 18px 45px rgba(68, 242, 217, 0.16);
   transform: translateY(-1px);
 }
+
+.flow-node-selected {
+  box-shadow: 0 0 0 2px rgba(255, 224, 140, 0.5);
+}

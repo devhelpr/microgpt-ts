@@ -1,5 +1,29 @@
 import './style.css';
-import { createMicroGptTrainer } from '../microgpt';
+import { createMicroGptTrainer, type StepTrace } from '../microgpt';
+
+const MAX_ITERATION_HISTORY = 50;
+
+function cloneTrace(t: StepTrace): StepTrace {
+  return {
+    context: t.context.slice(),
+    contextTokens: t.contextTokens.slice(),
+    targetIndex: t.targetIndex,
+    targetToken: t.targetToken,
+    predictedToken: t.predictedToken,
+    loss: t.loss,
+    lr: t.lr,
+    gradNorm: t.gradNorm,
+    top: t.top.map((x) => ({ token: x.token, prob: x.prob })),
+    tokenEmbedding: t.tokenEmbedding.slice(),
+    positionEmbedding: t.positionEmbedding.slice(),
+    summedEmbedding: t.summedEmbedding.slice(),
+    mlpOut: t.mlpOut?.slice() ?? [],
+    lnOut: t.lnOut.slice(),
+    logits: t.logits.slice(),
+    targetProb: t.targetProb,
+    attentionWeights: t.attentionWeights?.slice(),
+  };
+}
 
 type FlowStage = {
   id: string;
@@ -52,12 +76,20 @@ const FLOW_STAGES: FlowStage[] = [
 
 const defaultDataset = ['anna', 'bob', 'carla', 'diana', 'elias', 'frank', 'lucas', 'mila', 'nora'].join('\n');
 
+type IterationSnapshot = {
+  step: number;
+  trace: StepTrace;
+  trainLoss: number;
+  devLoss: number;
+  batchLoss: number;
+};
+
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found');
 
 const flowNodesHtml = FLOW_STAGES.map(
   (s, i) => `
-    <article id="flow-${s.id}" class="flow-node rounded-xl border border-white/10 bg-black/25 p-3">
+    <article id="flow-${s.id}" class="flow-node cursor-pointer rounded-xl border border-white/10 bg-black/25 p-3 transition hover:border-white/25 hover:bg-black/40" data-stage-index="${i}" role="button" tabindex="0">
       <p class="mono text-xs text-white/45">${String(i + 1).padStart(2, '0')}</p>
       <h4 class="mt-1 text-sm font-semibold text-white">${s.title}</h4>
       <p class="mt-1 text-xs text-white/65">${s.description}</p>
@@ -127,7 +159,13 @@ app.innerHTML = `
       <div class="panel p-4 lg:col-span-2">
         <div class="flex items-center justify-between">
           <p class="panel-title">How The Algorithm Works</p>
-          <span class="rounded-full border border-white/20 px-2 py-1 text-xs text-white/60">live stage</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-white/50">Review:</span>
+            <select id="iterationSelect" class="mono rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-xs text-white/90 focus:border-neon focus:outline-none">
+              <option value="live">Live</option>
+            </select>
+            <span id="iterationStepLabel" class="text-xs text-white/50"></span>
+          </div>
         </div>
         <div id="flowGrid" class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">${flowNodesHtml}</div>
         <div id="flowDetail" class="mt-3 rounded-lg border border-neon/25 bg-neon/10 p-3 text-sm text-neon"></div>
@@ -135,7 +173,7 @@ app.innerHTML = `
       </div>
 
       <div class="panel p-4">
-        <p class="panel-title">Current Step Breakdown</p>
+        <p class="panel-title" id="breakdownTitle">Current Step Breakdown</p>
         <div class="mt-3 space-y-2 text-sm">
           <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Context IDs:</span> <span id="traceContext" class="mono text-white/90"></span></div>
           <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Context tokens:</span> <span id="traceTokens" class="mono text-white/90"></span></div>
@@ -183,6 +221,8 @@ const chartCanvas = document.querySelector<HTMLCanvasElement>('#lossChart');
 const flowGridEl = document.querySelector<HTMLElement>('#flowGrid');
 const flowDetailEl = document.querySelector<HTMLElement>('#flowDetail');
 const flowVisualEl = document.querySelector<HTMLElement>('#flowVisual');
+const iterationSelectEl = document.querySelector<HTMLSelectElement>('#iterationSelect');
+const iterationStepLabelEl = document.querySelector<HTMLElement>('#iterationStepLabel');
 const dataStatsEl = document.querySelector<HTMLElement>('#dataStats');
 const traceContextEl = document.querySelector<HTMLElement>('#traceContext');
 const traceTokensEl = document.querySelector<HTMLElement>('#traceTokens');
@@ -190,6 +230,7 @@ const traceTargetEl = document.querySelector<HTMLElement>('#traceTarget');
 const tracePredEl = document.querySelector<HTMLElement>('#tracePred');
 const traceLrEl = document.querySelector<HTMLElement>('#traceLr');
 const traceGradEl = document.querySelector<HTMLElement>('#traceGrad');
+const breakdownTitleEl = document.querySelector<HTMLElement>('#breakdownTitle');
 
 if (
   !datasetEl ||
@@ -211,13 +252,16 @@ if (
   !flowGridEl ||
   !flowDetailEl ||
   !flowVisualEl ||
+  !iterationSelectEl ||
+  !iterationStepLabelEl ||
   !dataStatsEl ||
   !traceContextEl ||
   !traceTokensEl ||
   !traceTargetEl ||
   !tracePredEl ||
   !traceLrEl ||
-  !traceGradEl
+  !traceGradEl ||
+  !breakdownTitleEl
 ) {
   throw new Error('Missing required UI element');
 }
@@ -234,6 +278,33 @@ let manualSample = '';
 let running = false;
 let phaseCursor = 0;
 const FLOW_FRAME_DELAY_MS = 90;
+
+let iterationHistory: IterationSnapshot[] = [];
+let selectedStageIndex: number | null = null;
+let selectedIterationKey: 'live' | string = 'live';
+
+function getDisplayTrace(): StepTrace {
+  if (selectedIterationKey === 'live') return trainer.lastTrace;
+  const stepNum = parseInt(selectedIterationKey.replace(/^step-/, ''), 10);
+  const snap = iterationHistory.find((s) => s.step === stepNum);
+  return snap ? snap.trace : trainer.lastTrace;
+}
+
+function updateIterationSelectOptions(): void {
+  if (!iterationSelectEl || !iterationStepLabelEl) return;
+  iterationSelectEl.innerHTML = '<option value="live">Live</option>';
+  const start = Math.max(0, iterationHistory.length - MAX_ITERATION_HISTORY);
+  for (let i = iterationHistory.length - 1; i >= start; i--) {
+    const s = iterationHistory[i];
+    const opt = document.createElement('option');
+    opt.value = `step-${s.step}`;
+    opt.textContent = `Step ${s.step}`;
+    iterationSelectEl.appendChild(opt);
+  }
+  iterationSelectEl.value = selectedIterationKey === 'live' || !iterationHistory.some((s) => `step-${s.step}` === selectedIterationKey) ? 'live' : selectedIterationKey;
+  const snap = selectedIterationKey !== 'live' ? iterationHistory.find((s) => `step-${s.step}` === selectedIterationKey) : null;
+  iterationStepLabelEl.textContent = snap ? `train=${snap.trainLoss.toFixed(4)} dev=${snap.devLoss.toFixed(4)}` : '';
+}
 
 function drawLossChart(losses: number[]): void {
   if (!chartCanvas) return;
@@ -305,8 +376,8 @@ function vectorBars(label: string, values: number[], colorClass = 'bg-neon/70'):
   `;
 }
 
-function stageVisualHtml(stageId: string): string {
-  const t = trainer.lastTrace;
+function stageVisualHtml(stageId: string, trace: StepTrace): string {
+  const t = trace;
   if (stageId === 'dataset') {
     const total = Math.max(1, trainer.trainSize + trainer.devSize + trainer.testSize);
     const trainW = Math.round((trainer.trainSize / total) * 100);
@@ -447,15 +518,23 @@ function stageVisualHtml(stageId: string): string {
   `;
 }
 
-function renderFlow(activeIdx: number): void {
+function renderFlow(): void {
+  const activeIdx =
+    selectedStageIndex !== null
+      ? selectedStageIndex
+      : running
+        ? phaseCursor
+        : FLOW_STAGES.length - 1;
+  const trace = getDisplayTrace();
   FLOW_STAGES.forEach((stage, i) => {
     const el = document.querySelector<HTMLElement>(`#flow-${stage.id}`);
     if (!el) return;
     el.classList.toggle('active', i === activeIdx);
+    el.classList.toggle('flow-node-selected', selectedStageIndex === i);
   });
   const active = FLOW_STAGES[activeIdx] ?? FLOW_STAGES[0];
   flowDetailEl!.textContent = `${active.title}: ${active.description}`;
-  flowVisualEl!.innerHTML = stageVisualHtml(active.id);
+  flowVisualEl!.innerHTML = stageVisualHtml(active.id, trace);
 }
 
 function render(): void {
@@ -467,17 +546,20 @@ function render(): void {
 
   dataStatsEl!.textContent = `words=${datasetEl!.value.split(/\r?\n/).filter(Boolean).length} | vocab=${trainer.vocabSize} | train/dev/test=${trainer.trainSize}/${trainer.devSize}/${trainer.testSize}`;
 
-  traceContextEl!.textContent = `[${trainer.lastTrace.context.join(', ')}]`;
-  traceTokensEl!.textContent = `[${trainer.lastTrace.contextTokens.join(', ')}]`;
-  traceTargetEl!.textContent = `${trainer.lastTrace.targetToken} (${trainer.lastTrace.targetIndex})`;
-  tracePredEl!.textContent = trainer.lastTrace.predictedToken;
-  traceLrEl!.textContent = trainer.lastTrace.lr.toFixed(4);
-  traceGradEl!.textContent = trainer.lastTrace.gradNorm.toFixed(6);
+  breakdownTitleEl!.textContent = selectedIterationKey === 'live' ? 'Current Step Breakdown' : `Step ${selectedIterationKey.replace(/^step-/, '')} Breakdown`;
+
+  const displayTrace = getDisplayTrace();
+  traceContextEl!.textContent = `[${displayTrace.context.join(', ')}]`;
+  traceTokensEl!.textContent = `[${displayTrace.contextTokens.join(', ')}]`;
+  traceTargetEl!.textContent = `${displayTrace.targetToken} (${displayTrace.targetIndex})`;
+  tracePredEl!.textContent = displayTrace.predictedToken;
+  traceLrEl!.textContent = displayTrace.lr.toFixed(4);
+  traceGradEl!.textContent = displayTrace.gradNorm.toFixed(6);
 
   progressBarEl!.style.width = `${Math.min(100, (trainer.step / trainer.maxSteps) * 100)}%`;
   statusPillEl!.textContent = running ? 'training' : trainer.step >= trainer.maxSteps ? 'completed' : 'idle';
 
-  tokenBarsEl!.innerHTML = trainer.lastTrace.top
+  tokenBarsEl!.innerHTML = displayTrace.top
     .map((t) => {
       const width = Math.max(6, Math.round(t.prob * 100));
       return `
@@ -490,7 +572,7 @@ function render(): void {
     })
     .join('');
 
-  renderFlow(running ? phaseCursor : trainer.step > 0 ? FLOW_STAGES.length - 1 : 0);
+  renderFlow();
   drawLossChart(trainer.losses.slice(-300));
 }
 
@@ -501,6 +583,15 @@ async function trainLoop(): Promise<void> {
 
   while (running && trainer.step < trainer.maxSteps) {
     trainer.trainStep();
+    iterationHistory.push({
+      step: trainer.step,
+      trace: cloneTrace(trainer.lastTrace),
+      trainLoss: trainer.trainLoss,
+      devLoss: trainer.devLoss,
+      batchLoss: trainer.latestBatchLoss,
+    });
+    if (iterationHistory.length > MAX_ITERATION_HISTORY) iterationHistory.shift();
+    updateIterationSelectOptions();
     for (let stage = 0; stage < FLOW_STAGES.length; stage += 1) {
       if (!running) break;
       phaseCursor = stage;
@@ -517,6 +608,9 @@ function resetTrainer(): void {
   running = false;
   phaseCursor = 0;
   manualSample = '';
+  iterationHistory = [];
+  selectedIterationKey = 'live';
+  selectedStageIndex = null;
   trainer = createMicroGptTrainer(datasetEl!.value, {
     blockSize: 16,
     nEmbd: 16,
@@ -524,6 +618,7 @@ function resetTrainer(): void {
     evalEvery: Math.max(5, Number(evalEveryEl!.value) || 24),
     seed: 1337,
   });
+  updateIterationSelectOptions();
   render();
 }
 
@@ -543,6 +638,35 @@ resetBtn.addEventListener('click', () => {
 sampleBtn.addEventListener('click', () => {
   manualSample = trainer.generate(42);
   render();
+});
+
+iterationSelectEl!.addEventListener('change', () => {
+  selectedIterationKey = iterationSelectEl!.value;
+  const snap = selectedIterationKey !== 'live' ? iterationHistory.find((s) => `step-${s.step}` === selectedIterationKey) : null;
+  iterationStepLabelEl!.textContent = snap ? `train=${snap.trainLoss.toFixed(4)} dev=${snap.devLoss.toFixed(4)}` : '';
+  render();
+});
+
+flowGridEl!.addEventListener('click', (e) => {
+  const target = (e.target as HTMLElement).closest('[data-stage-index]');
+  if (!target) return;
+  const idx = parseInt((target as HTMLElement).dataset.stageIndex ?? '-1', 10);
+  if (idx >= 0 && idx < FLOW_STAGES.length) {
+    selectedStageIndex = selectedStageIndex === idx ? null : idx;
+    render();
+  }
+});
+
+flowGridEl!.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const target = (e.target as HTMLElement).closest('[data-stage-index]');
+  if (!target) return;
+  e.preventDefault();
+  const idx = parseInt((target as HTMLElement).dataset.stageIndex ?? '-1', 10);
+  if (idx >= 0 && idx < FLOW_STAGES.length) {
+    selectedStageIndex = selectedStageIndex === idx ? null : idx;
+    render();
+  }
 });
 
 window.addEventListener('resize', () => render());
