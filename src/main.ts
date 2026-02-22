@@ -415,7 +415,6 @@ let manualSample = '';
 
 let running = false;
 let phaseCursor = 0;
-const FLOW_FRAME_DELAY_MS = 90;
 
 let iterationHistory: IterationSnapshot[] = [];
 let selectedStageIndex: number | null = null;
@@ -684,33 +683,45 @@ function render(): void {
 
   dataStatsEl!.textContent = `words=${datasetEl!.value.split(/\r?\n/).filter(Boolean).length} | vocab=${trainer.vocabSize} | train/dev/test=${trainer.trainSize}/${trainer.devSize}/${trainer.testSize}`;
 
-  breakdownTitleEl!.textContent = selectedIterationKey === 'live' ? 'Current Step Breakdown' : `Step ${selectedIterationKey.replace(/^step-/, '')} Breakdown`;
-
-  const displayTrace = getDisplayTrace();
-  traceContextEl!.textContent = `[${displayTrace.context.join(', ')}]`;
-  traceTokensEl!.textContent = `[${displayTrace.contextTokens.join(', ')}]`;
-  traceTargetEl!.textContent = `${displayTrace.targetToken} (${displayTrace.targetIndex})`;
-  tracePredEl!.textContent = displayTrace.predictedToken;
-  traceLrEl!.textContent = displayTrace.lr.toFixed(4);
-  traceGradEl!.textContent = displayTrace.gradNorm.toFixed(6);
-
   progressBarEl!.style.width = `${Math.min(100, (trainer.step / trainer.maxSteps) * 100)}%`;
   statusPillEl!.textContent = running ? 'training' : trainer.step >= trainer.maxSteps ? 'completed' : 'idle';
 
-  tokenBarsEl!.innerHTML = displayTrace.top
-    .map((t) => {
-      const width = Math.max(6, Math.round(t.prob * 100));
-      return `
+  const showStepDetails = !running;
+  const breakdownPanel = breakdownTitleEl!.closest('.panel');
+  const flowSection = flowGridEl!.closest('.panel');
+  const tokenBarsPanel = tokenBarsEl!.closest('.panel');
+  if (breakdownPanel) breakdownPanel.classList.toggle('hidden', !showStepDetails);
+  if (flowSection) flowSection.querySelector('#flowDetail')?.classList.toggle('hidden', !showStepDetails);
+  if (flowSection) flowSection.querySelector('#flowVisual')?.classList.toggle('hidden', !showStepDetails);
+  if (tokenBarsPanel) tokenBarsPanel.classList.toggle('hidden', !showStepDetails);
+
+  if (showStepDetails) {
+    breakdownTitleEl!.textContent = selectedIterationKey === 'live' ? 'Current Step Breakdown' : `Step ${selectedIterationKey.replace(/^step-/, '')} Breakdown`;
+
+    const displayTrace = getDisplayTrace();
+    traceContextEl!.textContent = `[${displayTrace.context.join(', ')}]`;
+    traceTokensEl!.textContent = `[${displayTrace.contextTokens.join(', ')}]`;
+    traceTargetEl!.textContent = `${displayTrace.targetToken} (${displayTrace.targetIndex})`;
+    tracePredEl!.textContent = displayTrace.predictedToken;
+    traceLrEl!.textContent = displayTrace.lr.toFixed(4);
+    traceGradEl!.textContent = displayTrace.gradNorm.toFixed(6);
+
+    tokenBarsEl!.innerHTML = displayTrace.top
+      .map((t) => {
+        const width = Math.max(6, Math.round(t.prob * 100));
+        return `
         <div class="grid grid-cols-[40px_1fr_52px] items-center gap-2 text-sm">
           <span class="mono text-white/70">${t.token}</span>
           <div class="h-2 overflow-hidden rounded bg-white/10"><div class="meter-fill h-full" style="width:${width}%"></div></div>
           <span class="mono text-right text-white/70">${t.prob.toFixed(3)}</span>
         </div>
       `;
-    })
-    .join('');
+      })
+      .join('');
 
-  renderFlow();
+    renderFlow();
+  }
+
   drawLossChart(trainer.losses.slice(-300));
 }
 
@@ -730,12 +741,8 @@ async function trainLoop(): Promise<void> {
     });
     if (iterationHistory.length > MAX_ITERATION_HISTORY) iterationHistory.shift();
     updateIterationSelectOptions();
-    for (let stage = 0; stage < FLOW_STAGES.length; stage += 1) {
-      if (!running) break;
-      phaseCursor = stage;
-      render();
-      await new Promise((resolve) => setTimeout(resolve, FLOW_FRAME_DELAY_MS));
-    }
+    render();
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   running = false;
