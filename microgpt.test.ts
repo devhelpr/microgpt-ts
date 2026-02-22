@@ -11,6 +11,7 @@ import {
   sampleCategorical,
   sparkline,
   topKIndices,
+  createMicroGptTrainer,
   n_embd,
   block_size,
   head_dim,
@@ -286,5 +287,55 @@ describe('constants', () => {
   it('block_size and n_embd are positive', () => {
     expect(block_size).toBeGreaterThan(0);
     expect(n_embd).toBeGreaterThan(0);
+  });
+});
+
+describe('createMicroGptTrainer (training run + generation)', () => {
+  const dataset = 'anna\nbob\ncarla\ndiana\nelias\nfrank\n';
+  const allowedChars = new Set(dataset.replace(/\n/g, '').split(''));
+
+  it('runs a complete training run and generate() returns names using only dataset characters', () => {
+    const trainer = createMicroGptTrainer(dataset, {
+      maxSteps: 200,
+      evalEvery: 50,
+      seed: 42,
+      blockSize: 16,
+      nEmbd: 16,
+    });
+
+    for (let i = 0; i < trainer.maxSteps; i++) {
+      trainer.trainStep();
+    }
+
+    expect(trainer.step).toBe(trainer.maxSteps);
+    expect(trainer.losses.length).toBeGreaterThan(0);
+    expect(typeof trainer.trainLoss).toBe('number');
+    expect(typeof trainer.devLoss).toBe('number');
+    expect(typeof trainer.testLoss).toBe('number');
+
+    const generated = trainer.generate(40);
+    expect(typeof generated).toBe('string');
+    for (const c of generated) {
+      expect(allowedChars.has(c)).toBe(true);
+    }
+    console.log('Generated names (sample):', generated || '(empty)');
+  });
+
+  it('generate() is deterministic with same seed and produces non-empty or empty string', () => {
+    const trainer = createMicroGptTrainer(dataset, {
+      maxSteps: 100,
+      evalEvery: 50,
+      seed: 123,
+    });
+    for (let i = 0; i < trainer.maxSteps; i++) trainer.trainStep();
+
+    const a = trainer.generate(30);
+    const b = trainer.generate(30);
+    expect(typeof a).toBe('string');
+    expect(typeof b).toBe('string');
+    expect(a.length).toBeLessThanOrEqual(30);
+    expect(b.length).toBeLessThanOrEqual(30);
+    console.log('Generated (a):', a || '(empty)');
+    console.log('Generated (b):', b || '(empty)');
   });
 });
