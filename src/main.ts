@@ -88,123 +88,112 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found');
 
 function stepExplainerDialogHtml(stage: FlowStage): string {
+  const markerId = `arr-${stage.id}`;
+  const arrowMarker = `<defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity="0.95"/></marker></defs>`;
+  const strokeArrow = `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7" marker-end="url(#${markerId})"`;
+  const strokeLine = 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.5"';
   const illustrations: Record<string, string> = {
-    dataset: `<svg viewBox="0 0 240 120" class="w-full max-w-sm mx-auto h-32 text-neon/80" aria-hidden="true">
-      <rect x="10" y="20" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
-      <rect x="10" y="50" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
-      <rect x="10" y="80" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
-      <text x="45" y="37" text-anchor="middle" fill="currentColor" font-size="10" font-family="system-ui">train</text>
-      <text x="45" y="67" text-anchor="middle" fill="currentColor" font-size="10">dev</text>
-      <text x="45" y="97" text-anchor="middle" fill="currentColor" font-size="10">test</text>
-      <path d="M90 60 L150 60" stroke="currentColor" stroke-width="2" opacity="0.6"/>
-      <polygon points="145,55 155,60 145,65" fill="currentColor" opacity="0.6"/>
-      <rect x="160" y="40" width="70" height="40" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1"/>
-      <text x="195" y="65" text-anchor="middle" fill="currentColor" font-size="9">names</text>
-      <text x="195" y="78" text-anchor="middle" fill="currentColor" font-size="9">1 per line</text>
+    dataset: `<svg viewBox="0 0 300 120" class="explainer-illo w-full max-w-sm mx-auto h-32 text-neon/90" aria-hidden="true">${arrowMarker}
+      <rect x="8" y="16" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="8" y="48" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="8" y="80" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <text x="44" y="34" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">train</text>
+      <text x="44" y="66" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">dev</text>
+      <text x="44" y="98" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">test</text>
+      <path d="M88 59 Q 130 59 165 59" ${strokeLine}/>
+      <path d="M165 59 L195 59" ${strokeArrow}/>
+      <rect x="200" y="38" width="92" height="44" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="246" y="58" text-anchor="middle" fill="currentColor" font-size="10" font-weight="500">names</text>
+      <text x="246" y="72" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">1 per line</text>
     </svg>`,
-    encode: `<svg viewBox="0 0 260 100" class="w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">
-      <rect x="10" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
-      <text x="28" y="48" text-anchor="middle" fill="currentColor" font-size="12" font-family="monospace">a</text>
-      <rect x="52" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
-      <text x="70" y="48" text-anchor="middle" fill="currentColor" font-size="12">n</text>
-      <rect x="94" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
-      <text x="112" y="48" text-anchor="middle" fill="currentColor" font-size="12">n</text>
-      <rect x="136" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
-      <text x="154" y="48" text-anchor="middle" fill="currentColor" font-size="12">a</text>
-      <path d="M80 70 L120 70" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
-      <polygon points="115,65 125,70 115,75" fill="currentColor" opacity="0.7"/>
-      <rect x="130" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
-      <text x="142" y="74" text-anchor="middle" fill="currentColor" font-size="10">0</text>
-      <rect x="158" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
-      <text x="170" y="74" text-anchor="middle" fill="currentColor" font-size="10">1</text>
-      <rect x="186" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
-      <text x="198" y="74" text-anchor="middle" fill="currentColor" font-size="10">1</text>
-      <rect x="214" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
-      <text x="226" y="74" text-anchor="middle" fill="currentColor" font-size="10">0</text>
+    encode: `<svg viewBox="0 0 300 100" class="explainer-illo w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">${arrowMarker}
+      <rect x="12" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <rect x="58" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <rect x="104" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <rect x="150" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="32" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">a</text>
+      <text x="78" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">n</text>
+      <text x="124" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">n</text>
+      <text x="170" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">a</text>
+      <path d="M198 44 L228 44" ${strokeArrow}/>
+      <rect x="232" y="32" width="28" height="24" rx="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
+      <rect x="264" y="32" width="28" height="24" rx="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
+      <text x="246" y="49" text-anchor="middle" fill="currentColor" font-size="11" font-weight="600">0</text>
+      <text x="278" y="49" text-anchor="middle" fill="currentColor" font-size="11" font-weight="600">1</text>
     </svg>`,
-    context: `<svg viewBox="0 0 320 90" class="w-full max-w-sm mx-auto h-24 text-neon/80" aria-hidden="true">
-      <rect x="8" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
-      <rect x="44" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
-      <rect x="80" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
-      <rect x="116" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
-      <rect x="152" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
-      <line x1="188" y1="41" x2="228" y2="41" stroke="currentColor" stroke-width="2" opacity="0.8"/>
-      <polygon points="223,36 233,41 223,46" fill="currentColor" opacity="0.8"/>
-      <rect x="238" y="25" width="40" height="32" rx="4" fill="currentColor" opacity="0.4" stroke="currentColor" stroke-width="1.5"/>
-      <text x="258" y="45" text-anchor="middle" fill="currentColor" font-size="9">next?</text>
-      <text x="20" y="78" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.8">pos 0</text>
-      <text x="128" y="78" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.8">… block_size</text>
+    context: `<svg viewBox="0 0 320 88" class="explainer-illo w-full max-w-sm mx-auto h-24 text-neon/90" aria-hidden="true">${arrowMarker}
+      <rect x="12" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="58" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="104" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="150" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="196" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <path d="M242 41 L272 41" ${strokeArrow}/>
+      <rect x="276" y="18" width="36" height="46" rx="8" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
+      <text x="294" y="42" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">next?</text>
+      <text x="31" y="76" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.7">pos 0</text>
+      <text x="215" y="76" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.7">block</text>
     </svg>`,
-    forward: `<svg viewBox="0 0 280 130" class="w-full max-w-sm mx-auto h-32 text-neon/80" aria-hidden="true">
-      <rect x="20" y="10" width="50" height="22" rx="3" fill="currentColor" opacity="0.2"/>
-      <text x="45" y="25" text-anchor="middle" fill="currentColor" font-size="9">tokens</text>
-      <rect x="20" y="38" width="50" height="22" rx="3" fill="currentColor" opacity="0.2"/>
-      <text x="45" y="53" text-anchor="middle" fill="currentColor" font-size="9">pos</text>
-      <path d="M70 21 L95 21" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      <path d="M70 49 L95 49" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      <rect x="95" y="8" width="42" height="52" rx="4" fill="currentColor" opacity="0.15"/>
-      <text x="116" y="35" text-anchor="middle" fill="currentColor" font-size="8">+</text>
-      <text x="116" y="50" text-anchor="middle" fill="currentColor" font-size="8">embed</text>
-      <path d="M137 34 L162 34" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      <rect x="162" y="18" width="50" height="32" rx="3" fill="currentColor" opacity="0.2"/>
-      <text x="187" y="38" text-anchor="middle" fill="currentColor" font-size="8">Attn</text>
-      <path d="M212 34 L237 34" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      <rect x="237" y="18" width="36" height="32" rx="3" fill="currentColor" opacity="0.25"/>
-      <text x="255" y="38" text-anchor="middle" fill="currentColor" font-size="8">MLP</text>
-      <path d="M255 50 L255 70" stroke="currentColor" stroke-width="1" opacity="0.6"/>
-      <rect x="235" y="70" width="40" height="24" rx="3" fill="currentColor" opacity="0.3"/>
-      <text x="255" y="86" text-anchor="middle" fill="currentColor" font-size="8">logits</text>
+    forward: `<svg viewBox="0 0 320 128" class="explainer-illo w-full max-w-sm mx-auto h-32 text-neon/90" aria-hidden="true">${arrowMarker}
+      <rect x="8" y="12" width="52" height="26" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <rect x="8" y="44" width="52" height="26" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <path d="M68 25 L92 25" ${strokeLine}/>
+      <path d="M68 57 L92 57" ${strokeLine}/>
+      <rect x="96" y="8" width="48" height="56" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="120" y="38" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">+ embed</text>
+      <path d="M152 36 L182 36" ${strokeArrow}/>
+      <rect x="186" y="20" width="52" height="32" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="212" y="40" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">Attn</text>
+      <path d="M246 36 L276 36" ${strokeArrow}/>
+      <rect x="280" y="20" width="32" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
+      <text x="296" y="40" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">MLP</text>
+      <path d="M296 60 L296 82" ${strokeLine}/>
+      <rect x="268" y="86" width="56" height="28" rx="8" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
+      <text x="296" y="104" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">logits</text>
     </svg>`,
-    softmax: `<svg viewBox="0 0 240 110" class="w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">
-      <rect x="20" y="20" width="80" height="70" rx="4" fill="currentColor" opacity="0.15"/>
-      <text x="60" y="42" text-anchor="middle" fill="currentColor" font-size="9">logits</text>
-      <text x="60" y="58" text-anchor="middle" fill="currentColor" font-size="8">(raw)</text>
-      <path d="M100 55 L140 55" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
-      <text x="120" y="50" text-anchor="middle" fill="currentColor" font-size="8">exp / Σ</text>
-      <polygon points="136,50 146,55 136,60" fill="currentColor" opacity="0.7"/>
-      <rect x="150" y="15" width="80" height="80" rx="4" fill="currentColor" opacity="0.2"/>
-      <rect x="158" y="28" width="64" height="8" rx="2" fill="currentColor" opacity="0.5"/>
-      <rect x="158" y="42" width="48" height="8" rx="2" fill="currentColor" opacity="0.4"/>
-      <rect x="158" y="56" width="56" height="8" rx="2" fill="currentColor" opacity="0.6"/>
-      <rect x="158" y="70" width="40" height="8" rx="2" fill="currentColor" opacity="0.3"/>
-      <text x="190" y="100" text-anchor="middle" fill="currentColor" font-size="9">probs Σ=1</text>
+    softmax: `<svg viewBox="0 0 300 112" class="explainer-illo w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">${arrowMarker}
+      <rect x="12" y="16" width="88" height="56" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <text x="56" y="42" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">logits</text>
+      <text x="56" y="58" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.8">(raw)</text>
+      <path d="M108 44 L152 44" ${strokeArrow}/>
+      <text x="130" y="38" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.9">exp / Σ</text>
+      <rect x="164" y="12" width="124" height="72" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <rect x="176" y="28" width="72" height="10" rx="4" fill="currentColor" fill-opacity="0.35"/>
+      <rect x="176" y="44" width="52" height="10" rx="4" fill="currentColor" fill-opacity="0.25"/>
+      <rect x="176" y="60" width="62" height="10" rx="4" fill="currentColor" fill-opacity="0.3"/>
+      <rect x="176" y="76" width="44" height="10" rx="4" fill="currentColor" fill-opacity="0.2"/>
+      <text x="226" y="96" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">probs Σ = 1</text>
     </svg>`,
-    loss: `<svg viewBox="0 0 260 100" class="w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">
-      <rect x="20" y="25" width="100" height="50" rx="4" fill="currentColor" opacity="0.15"/>
-      <text x="70" y="48" text-anchor="middle" fill="currentColor" font-size="9">p(target)</text>
-      <text x="70" y="62" text-anchor="middle" fill="currentColor" font-size="8">probability</text>
-      <path d="M120 50 L160 50" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
-      <text x="140" y="42" text-anchor="middle" fill="currentColor" font-size="8">-log(·)</text>
-      <polygon points="156,45 166,50 156,55" fill="currentColor" opacity="0.7"/>
-      <rect x="170" y="25" width="70" height="50" rx="4" fill="currentColor" opacity="0.25"/>
-      <text x="205" y="52" text-anchor="middle" fill="currentColor" font-size="10">L</text>
-      <text x="205" y="68" text-anchor="middle" fill="currentColor" font-size="8">loss</text>
+    loss: `<svg viewBox="0 0 300 96" class="explainer-illo w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">${arrowMarker}
+      <rect x="12" y="20" width="100" height="56" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <text x="62" y="48" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">p(target)</text>
+      <text x="62" y="64" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">probability</text>
+      <path d="M120 48 L168 48" ${strokeArrow}/>
+      <text x="144" y="42" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.9">−log(·)</text>
+      <rect x="180" y="20" width="108" height="56" rx="8" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
+      <text x="234" y="48" text-anchor="middle" fill="currentColor" font-size="14" font-weight="700">L</text>
+      <text x="234" y="64" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.9">loss</text>
     </svg>`,
-    backprop: `<svg viewBox="0 0 280 100" class="w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">
-      <rect x="200" y="30" width="60" height="40" rx="4" fill="currentColor" opacity="0.2"/>
-      <text x="230" y="55" text-anchor="middle" fill="currentColor" font-size="9">L</text>
-      <path d="M200 50 L150 50" stroke="currentColor" stroke-width="2" opacity="0.6"/>
-      <polygon points="155,45 165,50 155,55" fill="currentColor" opacity="0.6"/>
-      <rect x="100" y="30" width="50" height="40" rx="4" fill="currentColor" opacity="0.2"/>
-      <text x="125" y="55" text-anchor="middle" fill="currentColor" font-size="8">∂L/∂</text>
-      <path d="M100 50 L50 50" stroke="currentColor" stroke-width="2" opacity="0.6"/>
-      <polygon points="55,45 65,50 55,55" fill="currentColor" opacity="0.6"/>
-      <rect x="10" y="30" width="45" height="40" rx="4" fill="currentColor" opacity="0.25"/>
-      <text x="32" y="55" text-anchor="middle" fill="currentColor" font-size="8">params</text>
-      <text x="140" y="88" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.8">backward pass</text>
+    backprop: `<svg viewBox="0 0 300 96" class="explainer-illo w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">${arrowMarker}
+      <rect x="8" y="24" width="56" height="48" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="36" y="52" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">params</text>
+      <path d="M72 48 L112 48" ${strokeArrow}/>
+      <rect x="116" y="32" width="68" height="32" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="150" y="52" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">∂L∕∂</text>
+      <path d="M192 48 L232 48" ${strokeArrow}/>
+      <rect x="236" y="24" width="56" height="48" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="264" y="52" text-anchor="middle" fill="currentColor" font-size="12" font-weight="700">L</text>
+      <text x="150" y="84" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.75">backward</text>
     </svg>`,
-    update: `<svg viewBox="0 0 280 110" class="w-full max-w-sm mx-auto h-28 text-neon/80" aria-hidden="true">
-      <rect x="20" y="25" width="70" height="35" rx="4" fill="currentColor" opacity="0.2"/>
-      <text x="55" y="47" text-anchor="middle" fill="currentColor" font-size="9">param</text>
-      <path d="M90 42 L125 42" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
-      <polygon points="120,37 130,42 120,47" fill="currentColor" opacity="0.6"/>
-      <rect x="130" y="15" width="120" height="55" rx="4" fill="currentColor" opacity="0.12"/>
-      <text x="190" y="35" text-anchor="middle" fill="currentColor" font-size="8">Adam: m,v ← gradients</text>
-      <text x="190" y="50" text-anchor="middle" fill="currentColor" font-size="8">param -= lr · m_hat / (√v_hat + ε)</text>
-      <path d="M250 70 L250 90" stroke="currentColor" stroke-width="1" opacity="0.5"/>
-      <polygon points="245,85 250,92 255,85" fill="currentColor" opacity="0.5"/>
-      <rect x="200" y="90" width="100" height="18" rx="3" fill="currentColor" opacity="0.2"/>
-      <text x="250" y="102" text-anchor="middle" fill="currentColor" font-size="8">updated</text>
+    update: `<svg viewBox="0 0 300 118" class="explainer-illo w-full max-w-sm mx-auto h-28 text-neon/90" aria-hidden="true">${arrowMarker}
+      <rect x="8" y="28" width="72" height="40" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <text x="44" y="52" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">param</text>
+      <path d="M88 48 L132 48" ${strokeArrow}/>
+      <rect x="136" y="12" width="128" height="56" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="200" y="34" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">Adam</text>
+      <text x="200" y="50" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.85">m,v ← grad · param −= lr·m̂/√v̂</text>
+      <path d="M264 76 L264 92" ${strokeLine}/>
+      <rect x="218" y="96" width="92" height="20" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
+      <text x="264" y="110" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">updated</text>
     </svg>`,
   };
   const bodies: Record<string, string> = {

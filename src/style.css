@@ -69,6 +69,11 @@ code,
   scrollbar-width: thin;
 }
 
+.explainer-illo {
+  color: inherit;
+  shape-rendering: geometricPrecision;
+}
+
 .explainer-dialog[open] {
   animation: explainer-dialog-in 0.2s ease-out;
 }
