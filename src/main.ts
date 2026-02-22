@@ -87,9 +87,157 @@ type IterationSnapshot = {
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found');
 
+function stepExplainerDialogHtml(stage: FlowStage): string {
+  const illustrations: Record<string, string> = {
+    dataset: `<svg viewBox="0 0 240 120" class="w-full max-w-sm mx-auto h-32 text-neon/80" aria-hidden="true">
+      <rect x="10" y="20" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
+      <rect x="10" y="50" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
+      <rect x="10" y="80" width="70" height="24" rx="4" fill="currentColor" opacity="0.25"/>
+      <text x="45" y="37" text-anchor="middle" fill="currentColor" font-size="10" font-family="system-ui">train</text>
+      <text x="45" y="67" text-anchor="middle" fill="currentColor" font-size="10">dev</text>
+      <text x="45" y="97" text-anchor="middle" fill="currentColor" font-size="10">test</text>
+      <path d="M90 60 L150 60" stroke="currentColor" stroke-width="2" opacity="0.6"/>
+      <polygon points="145,55 155,60 145,65" fill="currentColor" opacity="0.6"/>
+      <rect x="160" y="40" width="70" height="40" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1"/>
+      <text x="195" y="65" text-anchor="middle" fill="currentColor" font-size="9">names</text>
+      <text x="195" y="78" text-anchor="middle" fill="currentColor" font-size="9">1 per line</text>
+    </svg>`,
+    encode: `<svg viewBox="0 0 260 100" class="w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">
+      <rect x="10" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
+      <text x="28" y="48" text-anchor="middle" fill="currentColor" font-size="12" font-family="monospace">a</text>
+      <rect x="52" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
+      <text x="70" y="48" text-anchor="middle" fill="currentColor" font-size="12">n</text>
+      <rect x="94" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
+      <text x="112" y="48" text-anchor="middle" fill="currentColor" font-size="12">n</text>
+      <rect x="136" y="30" width="36" height="28" rx="3" fill="currentColor" opacity="0.3"/>
+      <text x="154" y="48" text-anchor="middle" fill="currentColor" font-size="12">a</text>
+      <path d="M80 70 L120 70" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+      <polygon points="115,65 125,70 115,75" fill="currentColor" opacity="0.7"/>
+      <rect x="130" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
+      <text x="142" y="74" text-anchor="middle" fill="currentColor" font-size="10">0</text>
+      <rect x="158" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
+      <text x="170" y="74" text-anchor="middle" fill="currentColor" font-size="10">1</text>
+      <rect x="186" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
+      <text x="198" y="74" text-anchor="middle" fill="currentColor" font-size="10">1</text>
+      <rect x="214" y="58" width="24" height="24" rx="2" fill="currentColor" opacity="0.2"/>
+      <text x="226" y="74" text-anchor="middle" fill="currentColor" font-size="10">0</text>
+    </svg>`,
+    context: `<svg viewBox="0 0 320 90" class="w-full max-w-sm mx-auto h-24 text-neon/80" aria-hidden="true">
+      <rect x="8" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+      <rect x="44" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+      <rect x="80" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+      <rect x="116" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+      <rect x="152" y="25" width="32" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+      <line x1="188" y1="41" x2="228" y2="41" stroke="currentColor" stroke-width="2" opacity="0.8"/>
+      <polygon points="223,36 233,41 223,46" fill="currentColor" opacity="0.8"/>
+      <rect x="238" y="25" width="40" height="32" rx="4" fill="currentColor" opacity="0.4" stroke="currentColor" stroke-width="1.5"/>
+      <text x="258" y="45" text-anchor="middle" fill="currentColor" font-size="9">next?</text>
+      <text x="20" y="78" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.8">pos 0</text>
+      <text x="128" y="78" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.8">… block_size</text>
+    </svg>`,
+    forward: `<svg viewBox="0 0 280 130" class="w-full max-w-sm mx-auto h-32 text-neon/80" aria-hidden="true">
+      <rect x="20" y="10" width="50" height="22" rx="3" fill="currentColor" opacity="0.2"/>
+      <text x="45" y="25" text-anchor="middle" fill="currentColor" font-size="9">tokens</text>
+      <rect x="20" y="38" width="50" height="22" rx="3" fill="currentColor" opacity="0.2"/>
+      <text x="45" y="53" text-anchor="middle" fill="currentColor" font-size="9">pos</text>
+      <path d="M70 21 L95 21" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <path d="M70 49 L95 49" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <rect x="95" y="8" width="42" height="52" rx="4" fill="currentColor" opacity="0.15"/>
+      <text x="116" y="35" text-anchor="middle" fill="currentColor" font-size="8">+</text>
+      <text x="116" y="50" text-anchor="middle" fill="currentColor" font-size="8">embed</text>
+      <path d="M137 34 L162 34" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <rect x="162" y="18" width="50" height="32" rx="3" fill="currentColor" opacity="0.2"/>
+      <text x="187" y="38" text-anchor="middle" fill="currentColor" font-size="8">Attn</text>
+      <path d="M212 34 L237 34" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <rect x="237" y="18" width="36" height="32" rx="3" fill="currentColor" opacity="0.25"/>
+      <text x="255" y="38" text-anchor="middle" fill="currentColor" font-size="8">MLP</text>
+      <path d="M255 50 L255 70" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+      <rect x="235" y="70" width="40" height="24" rx="3" fill="currentColor" opacity="0.3"/>
+      <text x="255" y="86" text-anchor="middle" fill="currentColor" font-size="8">logits</text>
+    </svg>`,
+    softmax: `<svg viewBox="0 0 240 110" class="w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">
+      <rect x="20" y="20" width="80" height="70" rx="4" fill="currentColor" opacity="0.15"/>
+      <text x="60" y="42" text-anchor="middle" fill="currentColor" font-size="9">logits</text>
+      <text x="60" y="58" text-anchor="middle" fill="currentColor" font-size="8">(raw)</text>
+      <path d="M100 55 L140 55" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+      <text x="120" y="50" text-anchor="middle" fill="currentColor" font-size="8">exp / Σ</text>
+      <polygon points="136,50 146,55 136,60" fill="currentColor" opacity="0.7"/>
+      <rect x="150" y="15" width="80" height="80" rx="4" fill="currentColor" opacity="0.2"/>
+      <rect x="158" y="28" width="64" height="8" rx="2" fill="currentColor" opacity="0.5"/>
+      <rect x="158" y="42" width="48" height="8" rx="2" fill="currentColor" opacity="0.4"/>
+      <rect x="158" y="56" width="56" height="8" rx="2" fill="currentColor" opacity="0.6"/>
+      <rect x="158" y="70" width="40" height="8" rx="2" fill="currentColor" opacity="0.3"/>
+      <text x="190" y="100" text-anchor="middle" fill="currentColor" font-size="9">probs Σ=1</text>
+    </svg>`,
+    loss: `<svg viewBox="0 0 260 100" class="w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">
+      <rect x="20" y="25" width="100" height="50" rx="4" fill="currentColor" opacity="0.15"/>
+      <text x="70" y="48" text-anchor="middle" fill="currentColor" font-size="9">p(target)</text>
+      <text x="70" y="62" text-anchor="middle" fill="currentColor" font-size="8">probability</text>
+      <path d="M120 50 L160 50" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+      <text x="140" y="42" text-anchor="middle" fill="currentColor" font-size="8">-log(·)</text>
+      <polygon points="156,45 166,50 156,55" fill="currentColor" opacity="0.7"/>
+      <rect x="170" y="25" width="70" height="50" rx="4" fill="currentColor" opacity="0.25"/>
+      <text x="205" y="52" text-anchor="middle" fill="currentColor" font-size="10">L</text>
+      <text x="205" y="68" text-anchor="middle" fill="currentColor" font-size="8">loss</text>
+    </svg>`,
+    backprop: `<svg viewBox="0 0 280 100" class="w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">
+      <rect x="200" y="30" width="60" height="40" rx="4" fill="currentColor" opacity="0.2"/>
+      <text x="230" y="55" text-anchor="middle" fill="currentColor" font-size="9">L</text>
+      <path d="M200 50 L150 50" stroke="currentColor" stroke-width="2" opacity="0.6"/>
+      <polygon points="155,45 165,50 155,55" fill="currentColor" opacity="0.6"/>
+      <rect x="100" y="30" width="50" height="40" rx="4" fill="currentColor" opacity="0.2"/>
+      <text x="125" y="55" text-anchor="middle" fill="currentColor" font-size="8">∂L/∂</text>
+      <path d="M100 50 L50 50" stroke="currentColor" stroke-width="2" opacity="0.6"/>
+      <polygon points="55,45 65,50 55,55" fill="currentColor" opacity="0.6"/>
+      <rect x="10" y="30" width="45" height="40" rx="4" fill="currentColor" opacity="0.25"/>
+      <text x="32" y="55" text-anchor="middle" fill="currentColor" font-size="8">params</text>
+      <text x="140" y="88" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.8">backward pass</text>
+    </svg>`,
+    update: `<svg viewBox="0 0 280 110" class="w-full max-w-sm mx-auto h-28 text-neon/80" aria-hidden="true">
+      <rect x="20" y="25" width="70" height="35" rx="4" fill="currentColor" opacity="0.2"/>
+      <text x="55" y="47" text-anchor="middle" fill="currentColor" font-size="9">param</text>
+      <path d="M90 42 L125 42" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+      <polygon points="120,37 130,42 120,47" fill="currentColor" opacity="0.6"/>
+      <rect x="130" y="15" width="120" height="55" rx="4" fill="currentColor" opacity="0.12"/>
+      <text x="190" y="35" text-anchor="middle" fill="currentColor" font-size="8">Adam: m,v ← gradients</text>
+      <text x="190" y="50" text-anchor="middle" fill="currentColor" font-size="8">param -= lr · m_hat / (√v_hat + ε)</text>
+      <path d="M250 70 L250 90" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <polygon points="245,85 250,92 255,85" fill="currentColor" opacity="0.5"/>
+      <rect x="200" y="90" width="100" height="18" rx="3" fill="currentColor" opacity="0.2"/>
+      <text x="250" y="102" text-anchor="middle" fill="currentColor" font-size="8">updated</text>
+    </svg>`,
+  };
+  const bodies: Record<string, string> = {
+    dataset: `Names (one per line) are loaded and split into <strong>train</strong>, <strong>dev</strong>, and <strong>test</strong> sets. Training uses the train set to update weights; dev is used to monitor generalization (e.g. loss); test is held out for final evaluation. A typical split is ~80% train, ~10% dev, ~10% test.`,
+    encode: `Each character is mapped to a unique integer <strong>token ID</strong>. A special <strong>BOS</strong> (beginning-of-sequence) token marks the start. The model only sees integers; the embedding layer turns them into continuous vectors.`,
+    context: `A fixed <strong>block size</strong> defines how many previous tokens the model can attend to. For each position in the context, the task is to predict the <strong>next token</strong>. So context <code>[a,n,n]</code> predicts <code>a</code>; sliding one step gives <code>[n,n,a]</code> → predict next, and so on.`,
+    forward: `Input tokens and positions are embedded and summed. Then: <strong>RMSNorm</strong> → <strong>Attention</strong> (Q, K, V, multi-head) → residual → RMSNorm → <strong>MLP</strong> (linear → ReLU → linear) → residual → <strong>lm_head</strong> → <strong>logits</strong> (one score per vocab token).`,
+    softmax: `Logits are converted to a probability distribution over the next token: <code>p_i = exp(logit_i) / Σ exp(logit_j)</code>. All probabilities sum to 1. The model is trained to assign high probability to the correct next character.`,
+    loss: `<strong>Cross-entropy</strong> measures how well the predicted distribution matches the target: <code>L = -log(p(target))</code>. Lower loss means the model assigned higher probability to the correct token. We minimize L by gradient descent.`,
+    backprop: `<strong>Backpropagation</strong> computes the gradient of the loss with respect to every parameter. The chain rule flows gradients backward through the graph (attention, MLP, embeddings). The gradient norm indicates how large the updates will be.`,
+    update: `<strong>Adam</strong> keeps per-parameter momentum (m) and variance (v). Parameters are updated with bias-corrected m and v: <code>param -= lr · m_hat / (√v_hat + ε)</code>. Learning rate is often decayed over steps (e.g. linear decay to 0).`,
+  };
+  const illo = illustrations[stage.id] ?? '';
+  const body = bodies[stage.id] ?? stage.description;
+  return `<dialog id="dialog-${stage.id}" class="explainer-dialog rounded-2xl border border-white/15 bg-slate/95 p-0 shadow-2xl backdrop:bg-black/60" aria-labelledby="dialog-title-${stage.id}">
+  <div class="explainer-dialog-content max-h-[85vh] overflow-y-auto p-6">
+    <div class="flex items-start justify-between gap-4">
+      <h2 id="dialog-title-${stage.id}" class="text-xl font-bold text-white">${stage.title}</h2>
+      <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white" aria-label="Close">✕</button>
+    </div>
+    <div class="mt-4 text-sm text-white/85 leading-relaxed [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1 [&_code]:font-mono [&_code]:text-neon">${body}</div>
+    ${illo ? `<div class="mt-6 flex justify-center">${illo}</div>` : ''}
+    <p class="mt-4 text-xs text-white/50">${stage.description}</p>
+  </div>
+</dialog>`;
+}
+
 const flowNodesHtml = FLOW_STAGES.map(
   (s, i) => `
-    <article id="flow-${s.id}" class="flow-node cursor-pointer rounded-xl border border-white/10 bg-black/25 p-3 transition hover:border-white/25 hover:bg-black/40" data-stage-index="${i}" role="button" tabindex="0">
+    <article id="flow-${s.id}" class="flow-node relative cursor-pointer rounded-xl border border-white/10 bg-black/25 p-3 pr-9 transition hover:border-white/25 hover:bg-black/40" data-stage-index="${i}" role="button" tabindex="0">
+      <button type="button" class="flow-info-btn absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-white/60 transition hover:border-neon/50 hover:bg-neon/15 hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon/50" data-stage-index="${i}" aria-label="Learn more about ${s.title}">
+        <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </button>
       <p class="mono text-xs text-white/45">${String(i + 1).padStart(2, '0')}</p>
       <h4 class="mt-1 text-sm font-semibold text-white">${s.title}</h4>
       <p class="mt-1 text-xs text-white/65">${s.description}</p>
@@ -199,6 +347,7 @@ app.innerHTML = `
         <div id="tokenBars" class="mt-3 space-y-2"></div>
       </div>
     </section>
+    ${FLOW_STAGES.map((s) => stepExplainerDialogHtml(s)).join('')}
   </main>
 `;
 
@@ -648,6 +797,18 @@ iterationSelectEl!.addEventListener('change', () => {
 });
 
 flowGridEl!.addEventListener('click', (e) => {
+  const infoBtn = (e.target as HTMLElement).closest('.flow-info-btn');
+  if (infoBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const idx = parseInt((infoBtn as HTMLElement).dataset.stageIndex ?? '-1', 10);
+    if (idx >= 0 && idx < FLOW_STAGES.length) {
+      const stage = FLOW_STAGES[idx];
+      const dialog = document.querySelector<HTMLDialogElement>(`#dialog-${stage.id}`);
+      if (dialog) dialog.showModal();
+    }
+    return;
+  }
   const target = (e.target as HTMLElement).closest('[data-stage-index]');
   if (!target) return;
   const idx = parseInt((target as HTMLElement).dataset.stageIndex ?? '-1', 10);
@@ -668,6 +829,18 @@ flowGridEl!.addEventListener('keydown', (e) => {
     render();
   }
 });
+
+// Close explainer dialogs: close button and backdrop click (native)
+app.addEventListener('click', (e) => {
+  const closeBtn = (e.target as HTMLElement).closest('.dialog-close');
+  if (closeBtn) {
+    const dialog = closeBtn.closest('dialog');
+    if (dialog instanceof HTMLDialogElement) dialog.close();
+  }
+});
+app.addEventListener('cancel', (e) => {
+  if ((e.target as HTMLDialogElement)?.tagName === 'DIALOG') (e.target as HTMLDialogElement).close();
+}, true);
 
 window.addEventListener('resize', () => render());
 

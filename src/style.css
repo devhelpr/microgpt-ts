@@ -53,3 +53,33 @@ code,
 .flow-node-selected {
   box-shadow: 0 0 0 2px rgba(255, 224, 140, 0.5);
 }
+
+/* HTML5 dialog explainers */
+.explainer-dialog {
+  max-width: min(32rem, 95vw);
+  margin: auto;
+}
+
+.explainer-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.explainer-dialog .explainer-dialog-content {
+  scrollbar-width: thin;
+}
+
+.explainer-dialog[open] {
+  animation: explainer-dialog-in 0.2s ease-out;
+}
+
+@keyframes explainer-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
