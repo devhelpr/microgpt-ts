@@ -5,6 +5,12 @@ import { getLocale, setLocale, getLocaleCode, type LocaleCode, buildIllustration
 
 const MAX_ITERATION_HISTORY = 50;
 
+// Initialise locale from persisted preference (if any) before reading locale strings.
+const storedLocale = (typeof window !== 'undefined' ? window.localStorage.getItem('locale') : null) as LocaleCode | null;
+if (storedLocale === 'en' || storedLocale === 'nl') {
+  setLocale(storedLocale);
+}
+
 let t = getLocale();
 
 function cloneTrace(tr: StepTrace): StepTrace {
@@ -40,12 +46,6 @@ type IterationSnapshot = {
   batchLoss: number;
 };
 
-// Initialise locale from persisted preference (if any) before building UI.
-const storedLocale = (typeof window !== 'undefined' ? window.localStorage.getItem('locale') : null) as LocaleCode | null;
-if (storedLocale === 'en' || storedLocale === 'nl') {
-  setLocale(storedLocale);
-}
-t = getLocale();
 const localeCode = getLocaleCode();
 
 const app = document.querySelector<HTMLDivElement>('#app');

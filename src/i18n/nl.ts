@@ -64,7 +64,7 @@ export const nl: LocaleStrings = {
   trainingDynamics: {
     panelTitle: 'Trainingsdynamiek',
     explainBtn: 'Leg de trainingsdynamiekgrafiek uit',
-    statusIdle: 'idle',
+    statusIdle: 'inactief',
     statusTraining: 'trainen',
     statusCompleted: 'klaar',
     step: 'Stap',
