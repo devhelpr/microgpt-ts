@@ -20,6 +20,7 @@ export function headerHtml(t: Pick<LocaleStrings, 'header' | 'languages'>, local
           </select>
         </div>
       </div>
+      <p class="mt-2 max-w-3xl text-sm text-white/70 md:text-base">${t.header.subtitle}</p>
       <p class="mt-4 max-w-3xl text-sm text-white/75 md:text-base">${t.header.description}</p>
     </header>
   `;

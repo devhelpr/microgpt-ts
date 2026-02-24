@@ -45,6 +45,7 @@ export const nl: LocaleStrings = {
   header: {
     panelTitle: 'microgpt in de browser',
     title: 'Visualiseer het volledige algoritme, live',
+    subtitle: 'TypeScript-port van <a href="https://karpathy.github.io/2026/02/12/microgpt/" target="_blank" rel="noopener noreferrer" class="underline text-neon/90 hover:text-neon focus:outline focus:ring-2 focus:ring-neon/50 rounded">microgpt</a> door <a href="https://karpathy.github.io/" target="_blank" rel="noopener noreferrer" class="underline text-neon/90 hover:text-neon focus:outline focus:ring-2 focus:ring-neon/50 rounded">Andrej Karpathy</a>.',
     description: 'Dit dashboard legt elke fase van microGPT uit en toont tijdens het trainen actuele waarden: contexttokens, kansen, verlies, gradiëntnorm en SGD‑updates.',
   },
   generatedName: {

@@ -42,6 +42,7 @@ export interface LocaleStrings {
   header: {
     panelTitle: string;
     title: string;
+    subtitle: string; // HTML: link to microgpt + author credit
     description: string;
   };
   generatedName: {

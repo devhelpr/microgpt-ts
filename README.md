@@ -1,6 +1,8 @@
 # microgpt TypeScript
 
-TypeScript port of Karpathy's `microgpt.py` with:
+**TypeScript port of [microgpt](https://karpathy.github.io/2026/02/12/microgpt/) by [Andrej Karpathy](https://karpathy.github.io/).**
+
+Features:
 
 - CLI training (`microgpt.ts`)
 - Browser UI (Vite + Vanilla TS + Tailwind)
