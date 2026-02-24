@@ -1,0 +1,20 @@
+---
+description: Atomic design and app structure for src (atoms → molecules → organisms → template)
+globs: src/**/*
+alwaysApply: false
+---
+
+# Atomic design app structure
+
+- **Atoms** (`components/atoms/`): Smallest UI blocks; return HTML strings; take plain strings, no i18n.
+- **Molecules** (`components/molecules/`): Compose atoms; take `t` (locale slice) as needed.
+- **Organisms** (`components/organisms/`): Full sections (header, panels, dialogs); take `t` and optional pre-built HTML.
+- **Template** (`components/template/`): Single function that composes organisms into page markup.
+- **App** (`app/`): State, render, trainLoop, events only. No UI markup here.
+- **main.ts**: Bootstrap only — locale init, inject template, queryRefs, create state, registerEvents, one render().
+
+**Where code lives**: Types in `types/`; pure utils in `lib/` (e.g. cloneTrace, chart, mermaid); DOM refs in `dom/refs.ts`. Keep `microgpt` imports in main, app, and organisms that need trainer (e.g. StageVisual).
+
+**Naming**: When both locale and trace are in scope, use `t` for locale and `tr` for trace to avoid shadowing.
+
+**Tests**: Colocate unit tests with modules (`*.test.ts`). Test pure functions and HTML builders with mocked `t`; use minimal StepTrace/TrainerSizes mocks for StageVisual.
