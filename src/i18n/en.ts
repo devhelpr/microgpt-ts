@@ -82,8 +82,11 @@ export const en: LocaleStrings = {
   breakdown: {
     panelTitle: 'Current Step Breakdown',
     stepBreakdown: 'Step {n} Breakdown',
+    contextText: 'Context text:',
+    noContextText: '(no real context yet – only internal start token)',
     contextIds: 'Context IDs:',
     contextTokens: 'Context tokens:',
+    contextTokensBosHint: '(showing only characters from your data; internal markers are hidden)',
     target: 'Target:',
     predicted: 'Predicted:',
     learningRate: 'Learning rate:',

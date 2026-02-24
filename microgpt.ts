@@ -237,13 +237,13 @@ const eps_adam = 1e-8;
 const defaultTemperature = 0.5;
 
 function emptyTrace(itos: Map<number, string>, BOS: number): StepTrace {
-  const tokenStr = (idx: number) => (idx === BOS ? '.' : itos.get(idx) ?? '?');
+  const tokenStr = (idx: number) => (idx === BOS ? 'BOS' : itos.get(idx) ?? '?');
   return {
     context: [],
     contextTokens: [],
     targetIndex: 0,
-    targetToken: '.',
-    predictedToken: '.',
+    targetToken: 'BOS',
+    predictedToken: 'BOS',
     loss: 0,
     lr: 0,
     gradNorm: 0,
@@ -302,10 +302,10 @@ export function createMicroGptTrainer(
 
   const itos = new Map<number, string>();
   uchars.forEach((ch, i) => itos.set(i, ch));
-  itos.set(BOS, '.');
+  itos.set(BOS, 'BOS');
 
   function tokenStr(idx: number): string {
-    return idx === BOS ? '.' : uchars[idx] ?? '?';
+    return idx === BOS ? 'BOS' : uchars[idx] ?? '?';
   }
 
   function encodeDoc(doc: string): number[] {

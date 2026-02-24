@@ -38,6 +38,7 @@ export interface DOMRefs {
   iterationSelect: HTMLSelectElement;
   iterationStepLabel: HTMLElement;
   dataStats: HTMLElement;
+  traceContextText: HTMLElement;
   traceContext: HTMLElement;
   traceTokens: HTMLElement;
   traceTarget: HTMLElement;

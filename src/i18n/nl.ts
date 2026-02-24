@@ -82,8 +82,11 @@ export const nl: LocaleStrings = {
   breakdown: {
     panelTitle: 'Huidige stap in detail',
     stepBreakdown: 'Stap {n} in detail',
+    contextText: 'Contexttekst:',
+    noContextText: '(nog geen echte context – alleen intern starttoken)',
     contextIds: 'Context‑ID’s:',
     contextTokens: 'Contexttokens:',
+    contextTokensBosHint: '(alleen tekens uit je data; interne markeringen zijn verborgen)',
     target: 'Doel:',
     predicted: 'Voorspeld:',
     learningRate: 'Learning rate:',

@@ -33,6 +33,7 @@ export function queryRefs(root: HTMLElement, missingError: string): DOMRefs {
     iterationSelect: get<HTMLSelectElement>('#iterationSelect'),
     iterationStepLabel: get<HTMLElement>('#iterationStepLabel'),
     dataStats: get<HTMLElement>('#dataStats'),
+    traceContextText: get<HTMLElement>('#traceContextText'),
     traceContext: get<HTMLElement>('#traceContext'),
     traceTokens: get<HTMLElement>('#traceTokens'),
     traceTarget: get<HTMLElement>('#traceTarget'),

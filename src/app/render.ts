@@ -107,8 +107,21 @@ export function render(state: AppState, refs: DOMRefs, t: LocaleStrings): void {
         : t.breakdown.stepBreakdown.replace('{n}', state.selectedIterationKey.replace(/^step-/, ''));
 
     const displayTrace = getDisplayTrace(state);
-    refs.traceContext.textContent = `[${displayTrace.context.join(', ')}]`;
-    refs.traceTokens.textContent = `[${displayTrace.contextTokens.join(', ')}]`;
+    const pairedContext = displayTrace.context.map((id, i) => ({
+      id,
+      token: displayTrace.contextTokens[i],
+    }));
+    const visibleContext = pairedContext.filter((p) => p.token !== 'BOS');
+    const visibleIds = visibleContext.map((p) => p.id);
+    const visibleTokens = visibleContext.map((p) => p.token);
+
+    // Human‑readable context text (just the characters, no BOS)
+    const contextText = visibleTokens.join('');
+    refs.traceContextText.textContent = contextText || t.breakdown.noContextText;
+
+    // Numeric IDs and token symbols, excluding BOS for clarity
+    refs.traceContext.textContent = `[${visibleIds.join(', ')}]`;
+    refs.traceTokens.textContent = `[${visibleTokens.join(', ')}]`;
     refs.traceTarget.textContent = `${displayTrace.targetToken} (${displayTrace.targetIndex})`;
     refs.tracePred.textContent = displayTrace.predictedToken;
     refs.traceLr.textContent = displayTrace.lr.toFixed(4);

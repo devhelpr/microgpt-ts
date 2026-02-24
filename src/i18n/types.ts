@@ -79,8 +79,11 @@ export interface LocaleStrings {
   breakdown: {
     panelTitle: string;
     stepBreakdown: string; // "Step {n} Breakdown"
+    contextText: string;
+    noContextText: string;
     contextIds: string;
     contextTokens: string;
+    contextTokensBosHint: string; // e.g. "Showing only characters; internal markers hidden"
     target: string;
     predicted: string;
     learningRate: string;
