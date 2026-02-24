@@ -46,7 +46,7 @@ export const en: LocaleStrings = {
     panelTitle: 'microgpt in browser',
     title: 'Visualize the full algorithm, live',
     subtitle: 'TypeScript port of <a href="https://karpathy.github.io/2026/02/12/microgpt/" target="_blank" rel="noopener noreferrer" class="underline text-neon/90 hover:text-neon focus:outline focus:ring-2 focus:ring-neon/50 rounded">microgpt</a> by <a href="https://karpathy.github.io/" target="_blank" rel="noopener noreferrer" class="underline text-neon/90 hover:text-neon focus:outline focus:ring-2 focus:ring-neon/50 rounded">Andrej Karpathy</a>.',
-    description: 'This dashboard explains each phase of microGPT and updates it with real values while training: context tokens, probabilities, loss, gradient norm, and SGD updates.',
+    description: 'This dashboard explains each phase of microGPT and updates it with real values while training: context tokens, probabilities, loss, gradient norm, and parameter updates.',
   },
   generatedName: {
     panelTitle: 'Generated name',
