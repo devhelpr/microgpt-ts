@@ -285,7 +285,12 @@ app.innerHTML = `
       <div class="panel p-4 lg:col-span-2">
         <div class="flex items-center justify-between">
           <p class="panel-title">Training Dynamics</p>
-          <div id="statusPill" class="rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs text-neon">idle</div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="trainingDynamicsInfoBtn" class="rounded-lg border border-white/20 p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-neon/50" aria-label="Explain training dynamics graph">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </button>
+            <div id="statusPill" class="rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs text-neon">idle</div>
+          </div>
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -341,6 +346,20 @@ app.innerHTML = `
         <div id="tokenBars" class="mt-3 space-y-2"></div>
       </div>
     </section>
+    <dialog id="dialog-training-dynamics" class="rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70 max-w-lg" aria-labelledby="dialog-training-dynamics-title" aria-modal="true">
+      <div class="max-h-[90vh] overflow-y-auto p-6">
+        <div class="flex items-start justify-between gap-4">
+          <h2 id="dialog-training-dynamics-title" class="text-xl font-bold text-white">Understanding the Training Dynamics Graph</h2>
+          <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="Close">✕</button>
+        </div>
+        <div class="mt-4 space-y-4 text-sm text-white/85 leading-relaxed [&_strong]:text-neon">
+          <p><strong>What this graph shows</strong><br/>The line plots <strong>batch loss</strong> over training steps (time runs left to right). Each point is the loss on one mini-batch: how wrong the model was on that small chunk of data. The chart shows the last 300 steps so you can see recent trends.</p>
+          <p><strong>What do the spikes mean?</strong><br/>Spikes are normal. Every step uses a different random batch, so some batches are harder than others—the model might see rare tokens or tricky contexts. That makes the batch loss jump up briefly. As long as the <em>overall trend</em> is downward, the model is learning. Big, sudden spikes can also happen when the learning rate is high or when the model hits a difficult part of the data.</p>
+          <p><strong>Numbers above the graph</strong><br/><strong>Batch loss</strong> is the value for the current step (what you see on the line). <strong>Train loss</strong> and <strong>Dev loss</strong> are averaged over the full train and dev sets and are updated every “Eval every” steps. They’re smoother and tell you whether the model is actually generalizing (dev loss going down) or overfitting (train down, dev up).</p>
+          <p class="text-xs text-white/55">Lower loss = better predictions. The goal is for the line to trend down and for dev loss to stay close to or below train loss.</p>
+        </div>
+      </div>
+    </dialog>
     <dialog id="dialog-transformer" class="transformer-dialog rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70" aria-labelledby="dialog-transformer-title" aria-modal="true">
       <div class="transformer-dialog-content max-h-[90vh] overflow-y-auto p-6">
         <div class="flex items-start justify-between gap-4">
@@ -387,6 +406,8 @@ const traceGradEl = document.querySelector<HTMLElement>('#traceGrad');
 const breakdownTitleEl = document.querySelector<HTMLElement>('#breakdownTitle');
 const showTransformerDiagramBtn = document.querySelector<HTMLButtonElement>('#showTransformerDiagramBtn');
 const dialogTransformer = document.querySelector<HTMLDialogElement>('#dialog-transformer');
+const trainingDynamicsInfoBtn = document.querySelector<HTMLButtonElement>('#trainingDynamicsInfoBtn');
+const dialogTrainingDynamics = document.querySelector<HTMLDialogElement>('#dialog-training-dynamics');
 
 if (
   !datasetEl ||
@@ -864,6 +885,10 @@ mermaid.initialize({
     useMaxWidth: true,
     htmlLabels: true,
   },
+});
+
+trainingDynamicsInfoBtn?.addEventListener('click', () => {
+  dialogTrainingDynamics?.showModal();
 });
 
 showTransformerDiagramBtn!.addEventListener('click', async () => {
