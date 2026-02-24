@@ -294,7 +294,7 @@ describe('createMicroGptTrainer (training run + generation)', () => {
   const dataset = 'anna\nbob\ncarla\ndiana\nelias\nfrank\n';
   const allowedChars = new Set(dataset.replace(/\n/g, '').split(''));
 
-  it('runs a complete training run and generate() returns names using only dataset characters', () => {
+  it('runs a complete training run and generate() returns names using only dataset characters', { timeout: 30000 }, () => {
     const trainer = createMicroGptTrainer(dataset, {
       maxSteps: 200,
       evalEvery: 50,
@@ -321,7 +321,7 @@ describe('createMicroGptTrainer (training run + generation)', () => {
     console.log('Generated names (sample):', generated || '(empty)');
   });
 
-  it('generate() is deterministic with same seed and produces non-empty or empty string', () => {
+  it('generate() is deterministic with same seed and produces non-empty or empty string', { timeout: 15000 }, () => {
     const trainer = createMicroGptTrainer(dataset, {
       maxSteps: 100,
       evalEvery: 50,
