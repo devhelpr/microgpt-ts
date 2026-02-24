@@ -1,0 +1,52 @@
+---
+description: i18n and multilanguage string usage in the app
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# i18n / Multilanguage
+
+All user-facing text must come from the locale layer so the app can support multiple languages later.
+
+## Where strings live
+
+- **`src/i18n/types.ts`** – Defines `LocaleStrings` and related types. Every new string key is declared here.
+- **`src/i18n/en.ts`** – English copy. Add new keys here (and keep types in sync).
+- **`src/i18n/illustrations.ts`** – Builds SVG explainers from `illustrationLabels`; do not put raw copy here.
+- **`src/i18n/index.ts`** – Exports `currentLocale`, `t`, and `buildIllustrationSvg`. Switch locale here when adding another language.
+
+## In app code (e.g. `main.ts`)
+
+- Import: `import { currentLocale as t, buildIllustrationSvg } from './i18n';`
+- Use **`t`** for all user-visible strings: `t.header.title`, `t.controls.start`, `t.errors.diagramRenderFailed`, etc.
+- For templates with placeholders, use `.replace('{key}', value)` (e.g. `t.breakdown.stepBreakdown.replace('{n}', stepNum)`).
+- Do **not** add new hardcoded UI strings in `main.ts` or other app files. Add the key to `LocaleStrings`, add the value in `en.ts`, then use `t.*` in the app.
+
+## Adding a new string
+
+1. Add the key (and type if needed) to `LocaleStrings` in `src/i18n/types.ts`.
+2. Add the English value in `src/i18n/en.ts`.
+3. Use `t.section.key` (or `t.section.nestedKey`) in the app.
+
+## Adding a new language
+
+1. Create e.g. `src/i18n/de.ts` that implements `LocaleStrings` (same shape as `en.ts`, translated values).
+2. In `src/i18n/index.ts`, set `currentLocale` from the new locale or from a language detector/preference.
+
+## Naming in functions that use both locale and trace
+
+If a function needs both the current locale and a `StepTrace` (or similar), name the trace variable **`tr`** so **`t`** stays reserved for the locale and is not shadowed.
+
+```typescript
+// ✅ GOOD – t = locale, tr = trace
+function stageVisualHtml(stageId: string, trace: StepTrace): string {
+  const tr = trace;
+  return `...${t.stageVisual.dataset.splitDescription}...${tr.targetToken}...`;
+}
+
+// ❌ BAD – t shadowed by trace, locale no longer accessible
+function stageVisualHtml(stageId: string, trace: StepTrace): string {
+  const t = trace;  // now t is trace, not locale
+  return `...${t.stageVisual...}`;  // wrong: stageVisual is on locale
+}
+```
