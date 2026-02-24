@@ -88,3 +88,43 @@ code,
     transform: scale(1);
   }
 }
+
+/* Transformer diagram modal */
+.transformer-dialog {
+  max-width: min(36rem, 95vw);
+  margin: auto;
+}
+
+.transformer-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.transformer-dialog[open] {
+  animation: explainer-dialog-in 0.25s ease-out;
+}
+
+.transformer-dialog .transformer-dialog-content {
+  scrollbar-width: thin;
+}
+
+/* Mermaid diagram in transformer modal */
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid {
+  display: flex;
+  justify-content: center;
+}
+
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid svg {
+  color: var(--tw-prose-body, inherit);
+}

@@ -1,5 +1,6 @@
 import './style.css';
-import { createMicroGptTrainer, type StepTrace } from '../microgpt';
+import mermaid from 'mermaid';
+import { createMicroGptTrainer, n_layer, n_head, type StepTrace } from '../microgpt';
 
 const MAX_ITERATION_HISTORY = 50;
 
@@ -313,6 +314,9 @@ app.innerHTML = `
             <span id="iterationStepLabel" class="text-xs text-white/50"></span>
           </div>
         </div>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" id="showTransformerDiagramBtn" class="rounded-lg border border-neon/50 px-3 py-1.5 text-xs font-semibold text-neon transition hover:bg-neon/15 focus:outline-none focus:ring-2 focus:ring-neon/50">View transformer diagram</button>
+        </div>
         <div id="flowGrid" class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">${flowNodesHtml}</div>
         <div id="flowDetail" class="mt-3 rounded-lg border border-neon/25 bg-neon/10 p-3 text-sm text-neon"></div>
         <div id="flowVisual" class="mt-3 rounded-xl border border-white/10 bg-black/30 p-3"></div>
@@ -337,6 +341,17 @@ app.innerHTML = `
         <div id="tokenBars" class="mt-3 space-y-2"></div>
       </div>
     </section>
+    <dialog id="dialog-transformer" class="transformer-dialog rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70" aria-labelledby="dialog-transformer-title" aria-modal="true">
+      <div class="transformer-dialog-content max-h-[90vh] overflow-y-auto p-6">
+        <div class="flex items-start justify-between gap-4">
+          <h2 id="dialog-transformer-title" class="text-xl font-bold text-white">How the model sees one step</h2>
+          <button type="button" class="dialog-close transformer-dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="Close">✕</button>
+        </div>
+        <p class="mt-2 text-sm text-white/75 leading-relaxed">Data flows <strong class="text-neon">top to bottom</strong>. We start with &ldquo;which character?&rdquo; and &ldquo;where in the sequence?&rdquo;, turn them into vectors, combine and normalize, then run the transformer block (attention + small MLP). Finally we get scores for the next character.</p>
+        <div id="transformerDiagramContainer" class="mt-6 flex justify-center rounded-xl border border-white/10 bg-black/30 p-6 min-h-[420px]"></div>
+        <p class="mt-4 text-xs text-white/55">This is one &ldquo;forward pass&rdquo; for a single position; the same structure repeats for each character the model predicts.</p>
+      </div>
+    </dialog>
     ${FLOW_STAGES.map((s) => stepExplainerDialogHtml(s)).join('')}
   </main>
 `;
@@ -370,6 +385,8 @@ const tracePredEl = document.querySelector<HTMLElement>('#tracePred');
 const traceLrEl = document.querySelector<HTMLElement>('#traceLr');
 const traceGradEl = document.querySelector<HTMLElement>('#traceGrad');
 const breakdownTitleEl = document.querySelector<HTMLElement>('#breakdownTitle');
+const showTransformerDiagramBtn = document.querySelector<HTMLButtonElement>('#showTransformerDiagramBtn');
+const dialogTransformer = document.querySelector<HTMLDialogElement>('#dialog-transformer');
 
 if (
   !datasetEl ||
@@ -400,7 +417,9 @@ if (
   !tracePredEl ||
   !traceLrEl ||
   !traceGradEl ||
-  !breakdownTitleEl
+  !breakdownTitleEl ||
+  !showTransformerDiagramBtn ||
+  !dialogTransformer
 ) {
   throw new Error('Missing required UI element');
 }
@@ -656,6 +675,31 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
   `;
 }
 
+/** Plain-English Mermaid flowchart so the diagram is understandable without ML jargon. */
+function getTransformerMermaidCode(): string {
+  return `flowchart TD
+  A["Which character?"]
+  C["Which position?"]
+  A --> B["Turn character into a vector"]
+  C --> D["Add position as a vector"]
+  B --> E["Combine both"]
+  D --> E
+  E --> F["Stabilize scale"]
+  F --> TB
+  subgraph TB["Transformer block × ${n_layer}"]
+    direction TB
+    G1["Stabilize"]
+    G2["Attention: mix with context"]
+    G3["Add shortcut"]
+    G4["Stabilize"]
+    G5["Small feed-forward"]
+    G6["Add shortcut"]
+    G1 --> G2 --> G3 --> G4 --> G5 --> G6
+  end
+  TB --> H["Predict next character"]
+  H --> I["Scores for each character"]`;
+}
+
 function renderFlow(): void {
   const activeIdx =
     selectedStageIndex !== null
@@ -784,6 +828,54 @@ resetBtn.addEventListener('click', () => {
 sampleBtn.addEventListener('click', () => {
   manualSample = trainer.generate(42);
   render();
+});
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: {
+    darkMode: true,
+    background: '#0f172a',
+    primaryColor: '#1e293b',
+    primaryTextColor: '#e2e8f0',
+    primaryBorderColor: '#44f2d9',
+    lineColor: '#44f2d9',
+    secondaryColor: '#0f172a',
+    tertiaryColor: '#1e293b',
+    tertiaryBorderColor: '#64748b',
+    nodeBorder: '#44f2d9',
+    clusterBkg: '#0f172a',
+    clusterBorder: '#475569',
+    titleColor: '#44f2d9',
+    edgeLabelBackground: '#1e293b',
+    nodeTextColor: '#e2e8f0',
+    textColor: '#94a3b8',
+    mainBkg: '#1e293b',
+    border1: '#44f2d9',
+    border2: '#64748b',
+    arrowheadColor: '#44f2d9',
+    fontFamily: 'IBM Plex Mono, monospace',
+  },
+  flowchart: {
+    curve: 'basis',
+    padding: 20,
+    nodeSpacing: 50,
+    rankSpacing: 40,
+    useMaxWidth: true,
+    htmlLabels: true,
+  },
+});
+
+showTransformerDiagramBtn!.addEventListener('click', async () => {
+  const container = document.getElementById('transformerDiagramContainer');
+  if (!container) return;
+  container.innerHTML = `<div class="mermaid">${getTransformerMermaidCode()}</div>`;
+  dialogTransformer!.showModal();
+  try {
+    await mermaid.run({ nodes: container.querySelectorAll('.mermaid') });
+  } catch (err) {
+    container.innerHTML = `<p class="text-sm text-coral">Diagram could not be drawn. Try refreshing.</p>`;
+  }
 });
 
 iterationSelectEl!.addEventListener('change', () => {
