@@ -1,6 +1,6 @@
 # microgpt TypeScript
 
-TypeScript-port van Karpathy's `microgpt.py` met:
+TypeScript port of Karpathy's `microgpt.py` with:
 
 - CLI training (`microgpt.ts`)
 - Browser UI (Vite + Vanilla TS + Tailwind)
@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-Open daarna de lokale Vite URL (meestal `http://localhost:5173`).
+Then open the local Vite URL (usually `http://localhost:5173`).
 
 ## Browser features
 
@@ -23,7 +23,7 @@ Open daarna de lokale Vite URL (meestal `http://localhost:5173`).
 - Top-k token probability bars
 - Full algorithm flow visualizer (dataset -> encoding -> context -> forward -> softmax -> loss -> backprop -> update)
 - Live step breakdown (context ids/tokens, target vs prediction, learning rate, gradient norm)
-- Dataset en hyperparameter controls
+- Dataset and hyperparameter controls
 
 ## CLI run
 
@@ -31,4 +31,14 @@ Open daarna de lokale Vite URL (meestal `http://localhost:5173`).
 node --experimental-strip-types microgpt.ts
 ```
 
-CLI toont een live terminal-dashboard met loss, samples en kansverdeling.
+The CLI shows a live terminal dashboard with loss, samples, and probability distribution.
+
+## Python run (microgpt.py)
+
+The Python version reads names from `input.txt` in the **project root** (not in the same directory as the script). You can run the script from any directory:
+
+```bash
+python python/microgpt.py
+```
+
+The script looks for `input.txt` automatically in the directory above `python/`. If the file is missing, a sample dataset is downloaded.
