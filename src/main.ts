@@ -1,81 +1,34 @@
 import './style.css';
 import mermaid from 'mermaid';
 import { createMicroGptTrainer, n_layer, n_head, type StepTrace } from '../microgpt';
+import { currentLocale as t, buildIllustrationSvg } from './i18n';
 
 const MAX_ITERATION_HISTORY = 50;
 
-function cloneTrace(t: StepTrace): StepTrace {
+function cloneTrace(tr: StepTrace): StepTrace {
   return {
-    context: t.context.slice(),
-    contextTokens: t.contextTokens.slice(),
-    targetIndex: t.targetIndex,
-    targetToken: t.targetToken,
-    predictedToken: t.predictedToken,
-    loss: t.loss,
-    lr: t.lr,
-    gradNorm: t.gradNorm,
-    top: t.top.map((x) => ({ token: x.token, prob: x.prob })),
-    tokenEmbedding: t.tokenEmbedding.slice(),
-    positionEmbedding: t.positionEmbedding.slice(),
-    summedEmbedding: t.summedEmbedding.slice(),
-    mlpOut: t.mlpOut?.slice() ?? [],
-    lnOut: t.lnOut.slice(),
-    logits: t.logits.slice(),
-    targetProb: t.targetProb,
-    attentionWeights: t.attentionWeights?.slice(),
+    context: tr.context.slice(),
+    contextTokens: tr.contextTokens.slice(),
+    targetIndex: tr.targetIndex,
+    targetToken: tr.targetToken,
+    predictedToken: tr.predictedToken,
+    loss: tr.loss,
+    lr: tr.lr,
+    gradNorm: tr.gradNorm,
+    top: tr.top.map((x) => ({ token: x.token, prob: x.prob })),
+    tokenEmbedding: tr.tokenEmbedding.slice(),
+    positionEmbedding: tr.positionEmbedding.slice(),
+    summedEmbedding: tr.summedEmbedding.slice(),
+    mlpOut: tr.mlpOut?.slice() ?? [],
+    lnOut: tr.lnOut.slice(),
+    logits: tr.logits.slice(),
+    targetProb: tr.targetProb,
+    attentionWeights: tr.attentionWeights?.slice(),
   };
 }
 
-type FlowStage = {
-  id: string;
-  title: string;
-  description: string;
-};
-
-const FLOW_STAGES: FlowStage[] = [
-  {
-    id: 'dataset',
-    title: '1. Dataset',
-    description: 'Read names and split into train/dev/test.',
-  },
-  {
-    id: 'encode',
-    title: '2. Encoding',
-    description: 'Map characters to integer token IDs (BOS = end-of-sequence).',
-  },
-  {
-    id: 'context',
-    title: '3. Context Window',
-    description: 'Fixed block_size context; each position predicts the next token.',
-  },
-  {
-    id: 'forward',
-    title: '4. Forward Pass',
-    description: 'Token + position embedding → RMSNorm → Attention (Q,K,V, multi-head) → residual → RMSNorm → MLP (ReLU) → residual → lm_head → logits.',
-  },
-  {
-    id: 'softmax',
-    title: '5. Softmax',
-    description: 'Convert logits to probabilities over next characters.',
-  },
-  {
-    id: 'loss',
-    title: '6. Loss',
-    description: 'Cross-entropy compares predicted distribution vs target token.',
-  },
-  {
-    id: 'backprop',
-    title: '7. Backprop',
-    description: 'Autograd computes gradients for each parameter.',
-  },
-  {
-    id: 'update',
-    title: '8. Update',
-    description: 'Adam: m = β1·m + (1−β1)·g, v = β2·v + (1−β2)·g²; param -= lr·m_hat/(√v_hat + ε).',
-  },
-];
-
-const defaultDataset = ['anna', 'bob', 'carla', 'diana', 'elias', 'frank', 'lucas', 'mila', 'nora'].join('\n');
+const FLOW_STAGES = t.flowStages;
+type FlowStage = (typeof FLOW_STAGES)[number];
 
 type IterationSnapshot = {
   step: number;
@@ -86,134 +39,16 @@ type IterationSnapshot = {
 };
 
 const app = document.querySelector<HTMLDivElement>('#app');
-if (!app) throw new Error('App root not found');
+if (!app) throw new Error(t.errors.appRootNotFound);
 
 function stepExplainerDialogHtml(stage: FlowStage): string {
-  const markerId = `arr-${stage.id}`;
-  const arrowMarker = `<defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity="0.95"/></marker></defs>`;
-  const strokeArrow = `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7" marker-end="url(#${markerId})"`;
-  const strokeLine = 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.5"';
-  const illustrations: Record<string, string> = {
-    dataset: `<svg viewBox="0 0 300 120" class="explainer-illo w-full max-w-sm mx-auto h-32 text-neon/90" aria-hidden="true">${arrowMarker}
-      <rect x="8" y="16" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="8" y="48" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="8" y="80" width="72" height="26" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <text x="44" y="34" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">train</text>
-      <text x="44" y="66" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">dev</text>
-      <text x="44" y="98" text-anchor="middle" fill="currentColor" font-size="11" font-weight="500">test</text>
-      <path d="M88 59 Q 130 59 165 59" ${strokeLine}/>
-      <path d="M165 59 L195 59" ${strokeArrow}/>
-      <rect x="200" y="38" width="92" height="44" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="246" y="58" text-anchor="middle" fill="currentColor" font-size="10" font-weight="500">names</text>
-      <text x="246" y="72" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">1 per line</text>
-    </svg>`,
-    encode: `<svg viewBox="0 0 300 100" class="explainer-illo w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">${arrowMarker}
-      <rect x="12" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <rect x="58" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <rect x="104" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <rect x="150" y="28" width="40" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="32" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">a</text>
-      <text x="78" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">n</text>
-      <text x="124" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">n</text>
-      <text x="170" y="50" text-anchor="middle" fill="currentColor" font-size="14" font-family="monospace">a</text>
-      <path d="M198 44 L228 44" ${strokeArrow}/>
-      <rect x="232" y="32" width="28" height="24" rx="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
-      <rect x="264" y="32" width="28" height="24" rx="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
-      <text x="246" y="49" text-anchor="middle" fill="currentColor" font-size="11" font-weight="600">0</text>
-      <text x="278" y="49" text-anchor="middle" fill="currentColor" font-size="11" font-weight="600">1</text>
-    </svg>`,
-    context: `<svg viewBox="0 0 320 88" class="explainer-illo w-full max-w-sm mx-auto h-24 text-neon/90" aria-hidden="true">${arrowMarker}
-      <rect x="12" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="58" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="104" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="150" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="196" y="22" width="38" height="38" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <path d="M242 41 L272 41" ${strokeArrow}/>
-      <rect x="276" y="18" width="36" height="46" rx="8" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
-      <text x="294" y="42" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">next?</text>
-      <text x="31" y="76" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.7">pos 0</text>
-      <text x="215" y="76" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.7">block</text>
-    </svg>`,
-    forward: `<svg viewBox="0 0 320 128" class="explainer-illo w-full max-w-sm mx-auto h-32 text-neon/90" aria-hidden="true">${arrowMarker}
-      <rect x="8" y="12" width="52" height="26" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <rect x="8" y="44" width="52" height="26" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <path d="M68 25 L92 25" ${strokeLine}/>
-      <path d="M68 57 L92 57" ${strokeLine}/>
-      <rect x="96" y="8" width="48" height="56" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="120" y="38" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">+ embed</text>
-      <path d="M152 36 L182 36" ${strokeArrow}/>
-      <rect x="186" y="20" width="52" height="32" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="212" y="40" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">Attn</text>
-      <path d="M246 36 L276 36" ${strokeArrow}/>
-      <rect x="280" y="20" width="32" height="32" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
-      <text x="296" y="40" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">MLP</text>
-      <path d="M296 60 L296 82" ${strokeLine}/>
-      <rect x="268" y="86" width="56" height="28" rx="8" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
-      <text x="296" y="104" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">logits</text>
-    </svg>`,
-    softmax: `<svg viewBox="0 0 300 112" class="explainer-illo w-full max-w-sm mx-auto h-28 text-butter/90" aria-hidden="true">${arrowMarker}
-      <rect x="12" y="16" width="88" height="56" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <text x="56" y="42" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">logits</text>
-      <text x="56" y="58" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.8">(raw)</text>
-      <path d="M108 44 L152 44" ${strokeArrow}/>
-      <text x="130" y="38" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.9">exp / Σ</text>
-      <rect x="164" y="12" width="124" height="72" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <rect x="176" y="28" width="72" height="10" rx="4" fill="currentColor" fill-opacity="0.35"/>
-      <rect x="176" y="44" width="52" height="10" rx="4" fill="currentColor" fill-opacity="0.25"/>
-      <rect x="176" y="60" width="62" height="10" rx="4" fill="currentColor" fill-opacity="0.3"/>
-      <rect x="176" y="76" width="44" height="10" rx="4" fill="currentColor" fill-opacity="0.2"/>
-      <text x="226" y="96" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">probs Σ = 1</text>
-    </svg>`,
-    loss: `<svg viewBox="0 0 300 96" class="explainer-illo w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">${arrowMarker}
-      <rect x="12" y="20" width="100" height="56" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <text x="62" y="48" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">p(target)</text>
-      <text x="62" y="64" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.85">probability</text>
-      <path d="M120 48 L168 48" ${strokeArrow}/>
-      <text x="144" y="42" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.9">−log(·)</text>
-      <rect x="180" y="20" width="108" height="56" rx="8" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.5" stroke-width="1.5"/>
-      <text x="234" y="48" text-anchor="middle" fill="currentColor" font-size="14" font-weight="700">L</text>
-      <text x="234" y="64" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.9">loss</text>
-    </svg>`,
-    backprop: `<svg viewBox="0 0 300 96" class="explainer-illo w-full max-w-sm mx-auto h-26 text-coral/90" aria-hidden="true">${arrowMarker}
-      <rect x="8" y="24" width="56" height="48" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="36" y="52" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">params</text>
-      <path d="M72 48 L112 48" ${strokeArrow}/>
-      <rect x="116" y="32" width="68" height="32" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="150" y="52" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">∂L∕∂</text>
-      <path d="M192 48 L232 48" ${strokeArrow}/>
-      <rect x="236" y="24" width="56" height="48" rx="8" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="264" y="52" text-anchor="middle" fill="currentColor" font-size="12" font-weight="700">L</text>
-      <text x="150" y="84" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.75">backward</text>
-    </svg>`,
-    update: `<svg viewBox="0 0 300 118" class="explainer-illo w-full max-w-sm mx-auto h-28 text-neon/90" aria-hidden="true">${arrowMarker}
-      <rect x="8" y="28" width="72" height="40" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <text x="44" y="52" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">param</text>
-      <path d="M88 48 L132 48" ${strokeArrow}/>
-      <rect x="136" y="12" width="128" height="56" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="200" y="34" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">Adam</text>
-      <text x="200" y="50" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.85">m,v ← grad · param −= lr·m̂/√v̂</text>
-      <path d="M264 76 L264 92" ${strokeLine}/>
-      <rect x="218" y="96" width="92" height="20" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
-      <text x="264" y="110" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">updated</text>
-    </svg>`,
-  };
-  const bodies: Record<string, string> = {
-    dataset: `We start with a list of names (one per line). That list is split into three parts: <strong>train</strong>, <strong>dev</strong>, and <strong>test</strong>. The model learns only from the train set. The dev set tells us how well it’s doing while we train (e.g. the “dev loss” you see). The test set is kept aside until the end to measure final performance. Usually we use about 80% for training, 10% for dev, and 10% for test.`,
-    encode: `The model can’t work with letters directly; it needs numbers. So every character (like <code>a</code>, <code>n</code>) is turned into a number called a <strong>token ID</strong>. A special token marks the start of a name (<strong>BOS</strong> = beginning of sequence). Later, an “embedding” layer turns these IDs into vectors of numbers the model actually uses. Think of it as: letters → ID numbers → rich number vectors.<br/><br/><strong>What are tokens in an LLM context?</strong> A <strong>token</strong> is the smallest piece of text the model works with: here, one character; in bigger models it might be a subword or word. The <strong>context</strong> is the list of tokens we give the model at once (e.g. the previous few characters). The model reads that context and predicts the next token. So "context" = the input sequence; "token" = one item in that sequence (or the one we're predicting).`,
-    context: `The model doesn’t see the whole name at once. It only looks at a fixed number of previous characters; that’s the <strong>context window</strong> (or block). At each step it tries to guess the <strong>next</strong> character. For example, if the context is <code>a, n, n</code>, the target might be <code>a</code> (for “anna”). Then we slide by one character and repeat. So the same name produces many small “predict the next character” tasks.`,
-    forward: `This is one full pass through the network. We take the token IDs and their positions, turn them into vectors (embeddings), and add them. Then we run that through: a normalization step (<strong>RMSNorm</strong>), <strong>attention</strong> (so each position can look at the others), a small “MLP” block, and finally a head that outputs one score per possible next character; those scores are the <strong>logits</strong>. No learning happens here; we’re just computing the model’s current prediction.`,
-    softmax: `The network outputs raw scores (logits). We need probabilities: “how likely is each character to come next?” <strong>Softmax</strong> does that. It turns the logits into numbers between 0 and 1 that add up to 1 (like a proper probability distribution). The formula is: each probability = exp(logit) divided by the sum of exp of all logits. Training tries to make the probability of the correct next character as high as possible.`,
-    loss: `We need one number that says “how wrong was the prediction?” That’s the <strong>loss</strong>. Here we use <strong>cross-entropy</strong>: <code>L = -log(probability we gave to the correct character)</code>. If the model was confident and right, that probability is high and the loss is low. If it was wrong or unsure, the loss is higher. Training aims to make this loss smaller over time.`,
-    backprop: `After we have the loss, we need to know how to change every weight in the network to reduce it. <strong>Backpropagation</strong> does that: it works backward from the loss through every layer (attention, MLP, embeddings) and computes a <strong>gradient</strong> for each parameter. The gradient tells us the direction and (roughly) how much to adjust. The “gradient norm” you see is a single number summarizing how big those gradients are.`,
-    update: `We have gradients; now we actually change the weights. We use <strong>Adam</strong>, a popular optimizer. It keeps a little “memory” (momentum) and “spread” (variance) per parameter, then updates each weight using the learning rate and those terms: <code>param -= lr · m_hat / (√v_hat + ε)</code>. The learning rate often gets smaller over training (e.g. linear decay), so steps are smaller near the end.`,
-  };
-  const illo = illustrations[stage.id] ?? '';
-  const body = bodies[stage.id] ?? stage.description;
+  const illo = buildIllustrationSvg(stage.id, t.illustrationLabels);
+  const body = t.explainerBodies[stage.id] ?? stage.description;
   return `<dialog id="dialog-${stage.id}" class="explainer-dialog rounded-2xl border border-white/15 bg-slate/95 p-0 shadow-2xl backdrop:bg-black/60" aria-labelledby="dialog-title-${stage.id}">
   <div class="explainer-dialog-content max-h-[85vh] overflow-y-auto p-6">
     <div class="flex items-start justify-between gap-4">
       <h2 id="dialog-title-${stage.id}" class="text-xl font-bold text-white">${stage.title}</h2>
-      <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white" aria-label="Close">✕</button>
+      <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white" aria-label="${t.aria.close}">✕</button>
     </div>
     <div class="mt-4 text-sm text-white/85 leading-relaxed [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1 [&_code]:font-mono [&_code]:text-neon">${body}</div>
     ${illo ? `<div class="mt-6 flex justify-center">${illo}</div>` : ''}
@@ -225,7 +60,7 @@ function stepExplainerDialogHtml(stage: FlowStage): string {
 const flowNodesHtml = FLOW_STAGES.map(
   (s, i) => `
     <article id="flow-${s.id}" class="flow-node relative cursor-pointer rounded-xl border border-white/10 bg-black/25 p-3 pr-9 transition hover:border-white/25 hover:bg-black/40" data-stage-index="${i}" role="button" tabindex="0">
-      <button type="button" class="flow-info-btn absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-white/60 transition hover:border-neon/50 hover:bg-neon/15 hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon/50" data-stage-index="${i}" aria-label="Learn more about ${s.title}">
+      <button type="button" class="flow-info-btn absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-white/60 transition hover:border-neon/50 hover:bg-neon/15 hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon/50" data-stage-index="${i}" aria-label="${t.aria.learnMoreAbout} ${s.title}">
         <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
       </button>
       <p class="mono text-xs text-white/45">${String(i + 1).padStart(2, '0')}</p>
@@ -240,16 +75,16 @@ app.innerHTML = `
     <header class="relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate to-[#1a1533] p-6 shadow-glow md:p-8">
       <div class="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-coral/20 blur-3xl"></div>
       <div class="absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-neon/20 blur-2xl"></div>
-      <p class="panel-title">microgpt in browser</p>
-      <h1 class="mt-2 text-3xl font-bold leading-tight md:text-5xl">Visualize the full algorithm, live</h1>
-      <p class="mt-4 max-w-3xl text-sm text-white/75 md:text-base">This dashboard explains each phase of microGPT and updates it with real values while training: context tokens, probabilities, loss, gradient norm, and SGD updates.</p>
+      <p class="panel-title">${t.header.panelTitle}</p>
+      <h1 class="mt-2 text-3xl font-bold leading-tight md:text-5xl">${t.header.title}</h1>
+      <p class="mt-4 max-w-3xl text-sm text-white/75 md:text-base">${t.header.description}</p>
     </header>
 
     <section class="mb-4">
       <div class="panel p-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="panel-title mb-0">Generated name</p>
-          <button id="sampleBtn" class="rounded-lg border border-butter/50 px-4 py-2 text-sm font-semibold text-butter hover:bg-butter/10">Generate</button>
+          <p class="panel-title mb-0">${t.generatedName.panelTitle}</p>
+          <button id="sampleBtn" class="rounded-lg border border-butter/50 px-4 py-2 text-sm font-semibold text-butter hover:bg-butter/10">${t.generatedName.generate}</button>
         </div>
         <pre id="sample" class="mono mt-3 min-h-14 whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-3 text-lg text-neon"></pre>
       </div>
@@ -257,47 +92,47 @@ app.innerHTML = `
 
     <section class="mb-4 grid gap-4 lg:grid-cols-3">
       <div class="panel p-4 lg:col-span-1">
-        <p class="panel-title">Controls</p>
-        <label class="mt-4 block text-sm text-white/70">Dataset (1 name per line)</label>
-        <textarea id="dataset" class="mono mt-2 h-44 w-full rounded-xl border border-white/15 bg-black/30 p-3 text-sm text-white/90 focus:border-neon focus:outline-none">${defaultDataset}</textarea>
+        <p class="panel-title">${t.controls.panelTitle}</p>
+        <label class="mt-4 block text-sm text-white/70">${t.controls.datasetLabel}</label>
+        <textarea id="dataset" class="mono mt-2 h-44 w-full rounded-xl border border-white/15 bg-black/30 p-3 text-sm text-white/90 focus:border-neon focus:outline-none">${t.defaultDataset}</textarea>
 
         <div class="mt-4 grid grid-cols-2 gap-3">
-          <label class="text-sm text-white/70">Max steps
+          <label class="text-sm text-white/70">${t.controls.maxSteps}
             <input id="maxSteps" type="number" value="1200" min="50" step="50" class="mono mt-1 w-full rounded-lg border border-white/15 bg-black/30 p-2 text-sm" />
           </label>
-          <label class="text-sm text-white/70">Eval every
+          <label class="text-sm text-white/70">${t.controls.evalEvery}
             <input id="evalEvery" type="number" value="24" min="5" step="1" class="mono mt-1 w-full rounded-lg border border-white/15 bg-black/30 p-2 text-sm" />
           </label>
         </div>
 
         <div class="mt-4 flex flex-wrap gap-2">
-          <button id="startBtn" class="rounded-lg bg-neon px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110">Start</button>
-          <button id="pauseBtn" class="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">Pause</button>
-          <button id="resetBtn" class="rounded-lg border border-coral/50 px-4 py-2 text-sm font-semibold text-coral hover:bg-coral/10">Reset</button>
+          <button id="startBtn" class="rounded-lg bg-neon px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110">${t.controls.start}</button>
+          <button id="pauseBtn" class="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">${t.controls.pause}</button>
+          <button id="resetBtn" class="rounded-lg border border-coral/50 px-4 py-2 text-sm font-semibold text-coral hover:bg-coral/10">${t.controls.reset}</button>
         </div>
 
         <div class="mt-4 space-y-2 text-xs text-white/60">
           <div id="dataStats"></div>
-          <div>Tip: reset after changing dataset/hyperparameters.</div>
+          <div>${t.controls.tipReset}</div>
         </div>
       </div>
 
       <div class="panel p-4 lg:col-span-2">
         <div class="flex items-center justify-between">
-          <p class="panel-title">Training Dynamics</p>
+          <p class="panel-title">${t.trainingDynamics.panelTitle}</p>
           <div class="flex items-center gap-2">
-            <button type="button" id="trainingDynamicsInfoBtn" class="rounded-lg border border-white/20 p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-neon/50" aria-label="Explain training dynamics graph">
+            <button type="button" id="trainingDynamicsInfoBtn" class="rounded-lg border border-white/20 p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition focus:outline-none focus:ring-2 focus:ring-neon/50" aria-label="${t.trainingDynamics.explainBtn}">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </button>
-            <div id="statusPill" class="rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs text-neon">idle</div>
+            <div id="statusPill" class="rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs text-neon">${t.trainingDynamics.statusIdle}</div>
           </div>
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">Step</div><div id="step" class="mono mt-1 text-xl">0</div></div>
-          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">Batch Loss</div><div id="batchLoss" class="mono mt-1 text-xl">0.0000</div></div>
-          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">Train Loss</div><div id="trainLoss" class="mono mt-1 text-xl">0.0000</div></div>
-          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">Dev Loss</div><div id="devLoss" class="mono mt-1 text-xl">0.0000</div></div>
+          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">${t.trainingDynamics.step}</div><div id="step" class="mono mt-1 text-xl">0</div></div>
+          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">${t.trainingDynamics.batchLoss}</div><div id="batchLoss" class="mono mt-1 text-xl">0.0000</div></div>
+          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">${t.trainingDynamics.trainLoss}</div><div id="trainLoss" class="mono mt-1 text-xl">0.0000</div></div>
+          <div class="rounded-xl border border-white/10 bg-black/25 p-3"><div class="text-xs text-white/50">${t.trainingDynamics.devLoss}</div><div id="devLoss" class="mono mt-1 text-xl">0.0000</div></div>
         </div>
 
         <div class="mt-4 rounded-2xl border border-white/10 bg-black/30 p-3">
@@ -310,17 +145,17 @@ app.innerHTML = `
     <section class="mb-4 grid gap-4 lg:grid-cols-3">
       <div class="panel p-4 lg:col-span-2">
         <div class="flex items-center justify-between">
-          <p class="panel-title">How The Algorithm Works</p>
+          <p class="panel-title">${t.algorithm.panelTitle}</p>
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs text-white/50">Review:</span>
+            <span class="text-xs text-white/50">${t.algorithm.review}</span>
             <select id="iterationSelect" class="mono rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-xs text-white/90 focus:border-neon focus:outline-none">
-              <option value="live">Live</option>
+              <option value="live">${t.algorithm.live}</option>
             </select>
             <span id="iterationStepLabel" class="text-xs text-white/50"></span>
           </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2">
-          <button type="button" id="showTransformerDiagramBtn" class="rounded-lg border border-neon/50 px-3 py-1.5 text-xs font-semibold text-neon transition hover:bg-neon/15 focus:outline-none focus:ring-2 focus:ring-neon/50">View transformer diagram</button>
+          <button type="button" id="showTransformerDiagramBtn" class="rounded-lg border border-neon/50 px-3 py-1.5 text-xs font-semibold text-neon transition hover:bg-neon/15 focus:outline-none focus:ring-2 focus:ring-neon/50">${t.algorithm.viewTransformerDiagram}</button>
         </div>
         <div id="flowGrid" class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">${flowNodesHtml}</div>
         <div id="flowDetail" class="mt-3 rounded-lg border border-neon/25 bg-neon/10 p-3 text-sm text-neon"></div>
@@ -328,47 +163,47 @@ app.innerHTML = `
       </div>
 
       <div class="panel p-4">
-        <p class="panel-title" id="breakdownTitle">Current Step Breakdown</p>
+        <p class="panel-title" id="breakdownTitle">${t.breakdown.panelTitle}</p>
         <div class="mt-3 space-y-2 text-sm">
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Context IDs:</span> <span id="traceContext" class="mono text-white/90"></span></div>
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Context tokens:</span> <span id="traceTokens" class="mono text-white/90"></span></div>
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Target:</span> <span id="traceTarget" class="mono text-butter"></span></div>
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Predicted:</span> <span id="tracePred" class="mono text-neon"></span></div>
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Learning rate:</span> <span id="traceLr" class="mono text-white/90"></span></div>
-          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">Gradient norm:</span> <span id="traceGrad" class="mono text-coral"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.contextIds}</span> <span id="traceContext" class="mono text-white/90"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.contextTokens}</span> <span id="traceTokens" class="mono text-white/90"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.target}</span> <span id="traceTarget" class="mono text-butter"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.predicted}</span> <span id="tracePred" class="mono text-neon"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.learningRate}</span> <span id="traceLr" class="mono text-white/90"></span></div>
+          <div class="rounded-lg border border-white/10 bg-black/25 p-2"><span class="text-white/60">${t.breakdown.gradientNorm}</span> <span id="traceGrad" class="mono text-coral"></span></div>
         </div>
       </div>
     </section>
 
     <section class="grid gap-4 lg:grid-cols-1">
       <div class="panel p-4">
-        <p class="panel-title">Probabilities (Current Step)</p>
+        <p class="panel-title">${t.probabilities.panelTitle}</p>
         <div id="tokenBars" class="mt-3 space-y-2"></div>
       </div>
     </section>
     <dialog id="dialog-training-dynamics" class="rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70 max-w-lg" aria-labelledby="dialog-training-dynamics-title" aria-modal="true">
       <div class="max-h-[90vh] overflow-y-auto p-6">
         <div class="flex items-start justify-between gap-4">
-          <h2 id="dialog-training-dynamics-title" class="text-xl font-bold text-white">Understanding the Training Dynamics Graph</h2>
-          <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="Close">✕</button>
+          <h2 id="dialog-training-dynamics-title" class="text-xl font-bold text-white">${t.dialogs.trainingDynamics.title}</h2>
+          <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="${t.aria.close}">✕</button>
         </div>
         <div class="mt-4 space-y-4 text-sm text-white/85 leading-relaxed [&_strong]:text-neon">
-          <p><strong>What this graph shows</strong><br/>The line plots <strong>batch loss</strong> over training steps (time runs left to right). Each point is the loss on one mini-batch: how wrong the model was on that small chunk of data. The chart shows the last 300 steps so you can see recent trends.</p>
-          <p><strong>What do the spikes mean?</strong><br/>Spikes are normal. Every step uses a different random batch, so some batches are harder than others; the model might see rare tokens or tricky contexts. That makes the batch loss jump up briefly. As long as the <em>overall trend</em> is downward, the model is learning. Big, sudden spikes can also happen when the learning rate is high or when the model hits a difficult part of the data.</p>
-          <p><strong>Numbers above the graph</strong><br/><strong>Batch loss</strong> is the value for the current step (what you see on the line). <strong>Train loss</strong> and <strong>Dev loss</strong> are averaged over the full train and dev sets and are updated every “Eval every” steps. They’re smoother and tell you whether the model is actually generalizing (dev loss going down) or overfitting (train down, dev up).</p>
-          <p class="text-xs text-white/55">Lower loss = better predictions. The goal is for the line to trend down and for dev loss to stay close to or below train loss.</p>
+          <p><strong>${t.dialogs.trainingDynamics.whatGraphShows}</strong><br/>${t.dialogs.trainingDynamics.whatGraphShowsBody}</p>
+          <p><strong>${t.dialogs.trainingDynamics.spikesMean}</strong><br/>${t.dialogs.trainingDynamics.spikesMeanBody}</p>
+          <p><strong>${t.dialogs.trainingDynamics.numbersAboveGraph}</strong><br/>${t.dialogs.trainingDynamics.numbersAboveGraphBody}</p>
+          <p class="text-xs text-white/55">${t.dialogs.trainingDynamics.lowerLossNote}</p>
         </div>
       </div>
     </dialog>
     <dialog id="dialog-transformer" class="transformer-dialog rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70" aria-labelledby="dialog-transformer-title" aria-modal="true">
       <div class="transformer-dialog-content max-h-[90vh] overflow-y-auto p-6">
         <div class="flex items-start justify-between gap-4">
-          <h2 id="dialog-transformer-title" class="text-xl font-bold text-white">How the model sees one step</h2>
-          <button type="button" class="dialog-close transformer-dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="Close">✕</button>
+          <h2 id="dialog-transformer-title" class="text-xl font-bold text-white">${t.dialogs.transformer.title}</h2>
+          <button type="button" class="dialog-close transformer-dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="${t.aria.close}">✕</button>
         </div>
-        <p class="mt-2 text-sm text-white/75 leading-relaxed">Data flows <strong class="text-neon">top to bottom</strong>. We start with &ldquo;which character?&rdquo; and &ldquo;where in the sequence?&rdquo;, turn them into vectors, combine and normalize, then run the transformer block (attention + small MLP). Finally we get scores for the next character.</p>
+        <p class="mt-2 text-sm text-white/75 leading-relaxed">${t.dialogs.transformer.intro}</p>
         <div id="transformerDiagramContainer" class="mt-6 flex justify-center rounded-xl border border-white/10 bg-black/30 p-6 min-h-[420px]"></div>
-        <p class="mt-4 text-xs text-white/55">This is one &ldquo;forward pass&rdquo; for a single position; the same structure repeats for each character the model predicts.</p>
+        <p class="mt-4 text-xs text-white/55">${t.dialogs.transformer.oneForwardPassNote}</p>
       </div>
     </dialog>
     ${FLOW_STAGES.map((s) => stepExplainerDialogHtml(s)).join('')}
@@ -442,7 +277,7 @@ if (
   !showTransformerDiagramBtn ||
   !dialogTransformer
 ) {
-  throw new Error('Missing required UI element');
+  throw new Error(t.errors.missingUiElement);
 }
 
 let trainer = createMicroGptTrainer(datasetEl!.value, {
@@ -470,18 +305,18 @@ function getDisplayTrace(): StepTrace {
 
 function updateIterationSelectOptions(): void {
   if (!iterationSelectEl || !iterationStepLabelEl) return;
-  iterationSelectEl.innerHTML = '<option value="live">Live</option>';
+  iterationSelectEl.innerHTML = `<option value="live">${t.algorithm.live}</option>`;
   const start = Math.max(0, iterationHistory.length - MAX_ITERATION_HISTORY);
   for (let i = iterationHistory.length - 1; i >= start; i--) {
     const s = iterationHistory[i];
     const opt = document.createElement('option');
     opt.value = `step-${s.step}`;
-    opt.textContent = `Step ${s.step}`;
+    opt.textContent = t.iterationSelect.stepLabel.replace('{n}', String(s.step));
     iterationSelectEl.appendChild(opt);
   }
   iterationSelectEl.value = selectedIterationKey === 'live' || !iterationHistory.some((s) => `step-${s.step}` === selectedIterationKey) ? 'live' : selectedIterationKey;
   const snap = selectedIterationKey !== 'live' ? iterationHistory.find((s) => `step-${s.step}` === selectedIterationKey) : null;
-  iterationStepLabelEl.textContent = snap ? `train=${snap.trainLoss.toFixed(4)} dev=${snap.devLoss.toFixed(4)}` : '';
+  iterationStepLabelEl.textContent = snap ? t.iterationSelect.trainDevLabel.replace('{trainLoss}', snap.trainLoss.toFixed(4)).replace('{devLoss}', snap.devLoss.toFixed(4)) : '';
 }
 
 function drawLossChart(losses: number[]): void {
@@ -527,8 +362,8 @@ function drawLossChart(losses: number[]): void {
 
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.font = '11px IBM Plex Mono';
-  ctx.fillText(`min ${min.toFixed(3)}`, 12, height - 8);
-  ctx.fillText(`max ${max.toFixed(3)}`, width - 82, height - 8);
+  ctx.fillText(`${t.chart.min} ${min.toFixed(3)}`, 12, height - 8);
+  ctx.fillText(`${t.chart.max} ${max.toFixed(3)}`, width - 82, height - 8);
 }
 
 function vectorBars(label: string, values: number[], colorClass = 'bg-neon/70'): string {
@@ -548,14 +383,14 @@ function vectorBars(label: string, values: number[], colorClass = 'bg-neon/70'):
     .join('');
   return `
     <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-      <div class="mb-2 text-xs text-white/60">${label} (first 8 dims)</div>
+      <div class="mb-2 text-xs text-white/60">${label} ${t.vectorBars.first8Dims}</div>
       <div class="space-y-1">${bars}</div>
     </div>
   `;
 }
 
 function stageVisualHtml(stageId: string, trace: StepTrace): string {
-  const t = trace;
+  const tr = trace;
   if (stageId === 'dataset') {
     const total = Math.max(1, trainer.trainSize + trainer.devSize + trainer.testSize);
     const trainW = Math.round((trainer.trainSize / total) * 100);
@@ -563,17 +398,17 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
     const testW = Math.round((trainer.testSize / total) * 100);
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Split of docs (names) used for train/dev/test.</div>
+        <div class="text-white/70">${t.stageVisual.dataset.splitDescription}</div>
         <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-          <div class="mb-1 text-xs text-white/55">train ${trainer.trainSize}</div>
+          <div class="mb-1 text-xs text-white/55">${t.stageVisual.dataset.train} ${trainer.trainSize}</div>
           <div class="h-2 rounded bg-white/10"><div class="h-full rounded bg-neon/70" style="width:${trainW}%"></div></div>
         </div>
         <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-          <div class="mb-1 text-xs text-white/55">dev ${trainer.devSize}</div>
+          <div class="mb-1 text-xs text-white/55">${t.stageVisual.dataset.dev} ${trainer.devSize}</div>
           <div class="h-2 rounded bg-white/10"><div class="h-full rounded bg-butter/70" style="width:${devW}%"></div></div>
         </div>
         <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-          <div class="mb-1 text-xs text-white/55">test ${trainer.testSize}</div>
+          <div class="mb-1 text-xs text-white/55">${t.stageVisual.dataset.test} ${trainer.testSize}</div>
           <div class="h-2 rounded bg-white/10"><div class="h-full rounded bg-coral/70" style="width:${testW}%"></div></div>
         </div>
       </div>
@@ -583,16 +418,16 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
   if (stageId === 'encode') {
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Characters become token IDs before training.</div>
+        <div class="text-white/70">${t.stageVisual.encode.description}</div>
         <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-          <div class="mono text-xs text-white/60">context tokens -> ids</div>
+          <div class="mono text-xs text-white/60">${t.stageVisual.encode.contextTokensToIds}</div>
           <div class="mt-2 flex flex-wrap gap-2">
-            ${t.contextTokens
-              .map((tok, i) => `<span class="mono rounded border border-white/15 px-2 py-1 text-xs">${tok} -> ${t.context[i]}</span>`)
+            ${tr.contextTokens
+              .map((tok, i) => `<span class="mono rounded border border-white/15 px-2 py-1 text-xs">${tok} -> ${tr.context[i]}</span>`)
               .join('')}
           </div>
         </div>
-        <div class="mono text-xs text-butter">target: ${t.targetToken} -> ${t.targetIndex}</div>
+        <div class="mono text-xs text-butter">${t.stageVisual.encode.target} ${tr.targetToken} -> ${tr.targetIndex}</div>
       </div>
     `;
   }
@@ -600,11 +435,11 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
   if (stageId === 'context') {
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Sliding context window predicts next token.</div>
+        <div class="text-white/70">${t.stageVisual.context.description}</div>
         <div class="flex items-center gap-2">
-          ${t.contextTokens.map((tok) => `<div class="mono rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm">${tok}</div>`).join('')}
+          ${tr.contextTokens.map((tok) => `<div class="mono rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm">${tok}</div>`).join('')}
           <div class="text-neon">-></div>
-          <div class="mono rounded-lg border border-butter/30 bg-butter/10 px-3 py-2 text-sm text-butter">${t.targetToken}</div>
+          <div class="mono rounded-lg border border-butter/30 bg-butter/10 px-3 py-2 text-sm text-butter">${tr.targetToken}</div>
         </div>
       </div>
     `;
@@ -612,12 +447,12 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
 
   if (stageId === 'forward') {
     const attnHtml =
-      t.attentionWeights && t.attentionWeights.length > 0
+      tr.attentionWeights && tr.attentionWeights.length > 0
         ? `
       <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-        <div class="mb-2 text-xs text-white/60">Attention (head 0) over context positions</div>
+        <div class="mb-2 text-xs text-white/60">${t.stageVisual.forward.attentionHead0}</div>
         <div class="flex flex-wrap gap-1">
-          ${t.attentionWeights
+          ${tr.attentionWeights!
             .map(
               (w, i) =>
                 `<div class="h-4 w-6 rounded bg-neon/70" style="opacity:${Math.max(0.2, w)}" title="pos ${i}: ${w.toFixed(3)}"></div>`,
@@ -629,10 +464,10 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
         : '';
     return `
       <div class="grid gap-2 md:grid-cols-2">
-        ${vectorBars('token embedding', t.tokenEmbedding, 'bg-neon/70')}
-        ${vectorBars('position embedding', t.positionEmbedding, 'bg-butter/70')}
-        ${vectorBars('sum embedding', t.summedEmbedding, 'bg-cyan-300/70')}
-        ${vectorBars('pre-head (after RMSNorm + MLP block)', t.lnOut, 'bg-indigo-300/70')}
+        ${vectorBars(t.stageVisual.forward.tokenEmbedding, tr.tokenEmbedding, 'bg-neon/70')}
+        ${vectorBars(t.stageVisual.forward.positionEmbedding, tr.positionEmbedding, 'bg-butter/70')}
+        ${vectorBars(t.stageVisual.forward.sumEmbedding, tr.summedEmbedding, 'bg-cyan-300/70')}
+        ${vectorBars(t.stageVisual.forward.preHeadAfterMlp, tr.lnOut, 'bg-indigo-300/70')}
         ${attnHtml}
       </div>
     `;
@@ -641,8 +476,8 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
   if (stageId === 'softmax') {
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Logits converted into normalized probabilities.</div>
-        ${t.top
+        <div class="text-white/70">${t.stageVisual.softmax.description}</div>
+        ${tr.top
           .map((row) => {
             const w = Math.max(6, Math.round(row.prob * 100));
             return `
@@ -661,64 +496,65 @@ function stageVisualHtml(stageId: string, trace: StepTrace): string {
   if (stageId === 'loss') {
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Cross-entropy for the true next token.</div>
+        <div class="text-white/70">${t.stageVisual.loss.description}</div>
         <div class="mono rounded-lg border border-white/10 bg-black/25 p-2 text-xs">
-          L = -log(p(target)) = -log(${Math.max(1e-9, t.targetProb).toFixed(4)}) = ${t.loss.toFixed(4)}
+          L = -log(p(target)) = -log(${Math.max(1e-9, tr.targetProb).toFixed(4)}) = ${tr.loss.toFixed(4)}
         </div>
-        <div class="text-xs text-white/60">Predicted ${t.predictedToken}, target ${t.targetToken}</div>
+        <div class="text-xs text-white/60">${t.stageVisual.loss.predictedTarget.replace('{pred}', tr.predictedToken).replace('{target}', tr.targetToken)}</div>
       </div>
     `;
   }
 
   if (stageId === 'backprop') {
-    const pct = Math.min(100, Math.round(t.gradNorm * 200));
+    const pct = Math.min(100, Math.round(tr.gradNorm * 200));
     return `
       <div class="space-y-2 text-sm">
-        <div class="text-white/70">Backward pass computes gradients through the graph.</div>
+        <div class="text-white/70">${t.stageVisual.backprop.description}</div>
         <div class="rounded-lg border border-white/10 bg-black/25 p-2">
-          <div class="mono text-xs text-white/60">gradient norm ${t.gradNorm.toFixed(6)}</div>
+          <div class="mono text-xs text-white/60">${t.stageVisual.backprop.gradientNorm} ${tr.gradNorm.toFixed(6)}</div>
           <div class="mt-2 h-2 rounded bg-white/10"><div class="h-full rounded bg-coral/70" style="width:${pct}%"></div></div>
         </div>
       </div>
     `;
   }
 
-  const delta = t.lr * t.gradNorm;
+  const delta = tr.lr * tr.gradNorm;
   return `
     <div class="space-y-2 text-sm">
-      <div class="text-white/70">Adam: m = β1·m + (1−β1)·g, v = β2·v + (1−β2)·g²; param -= lr·m_hat/(√v_hat + ε).</div>
+      <div class="text-white/70">${t.stageVisual.update.description}</div>
       <div class="mono rounded-lg border border-white/10 bg-black/25 p-2 text-xs">
-        param -= lr * m_hat / (sqrt(v_hat) + ε)
+        ${t.stageVisual.update.formula}
       </div>
-      <div class="mono text-xs text-white/70">lr=${t.lr.toFixed(4)} | avg step magnitude≈${delta.toExponential(2)}</div>
-      ${vectorBars('pre-head (before lm_head)', t.lnOut, 'bg-emerald-300/70')}
+      <div class="mono text-xs text-white/70">${t.stageVisual.update.lrStepMagnitude.replace('{lr}', tr.lr.toFixed(4)).replace('{delta}', delta.toExponential(2))}</div>
+      ${vectorBars(t.stageVisual.forward.preHeadBeforeLmHead, tr.lnOut, 'bg-emerald-300/70')}
     </div>
   `;
 }
 
 /** Plain-English Mermaid flowchart so the diagram is understandable without ML jargon. */
 function getTransformerMermaidCode(): string {
+  const M = t.mermaid;
   return `flowchart TD
-  A["Which character?"]
-  C["Which position?"]
-  A --> B["Turn character into a vector"]
-  C --> D["Add position as a vector"]
-  B --> E["Combine both"]
+  A["${M.whichCharacter}"]
+  C["${M.whichPosition}"]
+  A --> B["${M.turnCharIntoVector}"]
+  C --> D["${M.addPositionAsVector}"]
+  B --> E["${M.combineBoth}"]
   D --> E
-  E --> F["Stabilize scale"]
+  E --> F["${M.stabilizeScale}"]
   F --> TB
-  subgraph TB["Transformer block × ${n_layer}"]
+  subgraph TB["${M.transformerBlock.replace('{n}', String(n_layer))}"]
     direction TB
-    G1["Stabilize"]
-    G2["Attention: mix with context"]
-    G3["Add shortcut"]
-    G4["Stabilize"]
-    G5["Small feed-forward"]
-    G6["Add shortcut"]
+    G1["${M.stabilize}"]
+    G2["${M.attentionMixContext}"]
+    G3["${M.addShortcut}"]
+    G4["${M.stabilize}"]
+    G5["${M.smallFeedForward}"]
+    G6["${M.addShortcut}"]
     G1 --> G2 --> G3 --> G4 --> G5 --> G6
   end
-  TB --> H["Predict next character"]
-  H --> I["Scores for each character"]`;
+  TB --> H["${M.predictNextChar}"]
+  H --> I["${M.scoresForEachChar}"]`;
 }
 
 function renderFlow(): void {
@@ -745,12 +581,12 @@ function render(): void {
   batchLossEl!.textContent = trainer.latestBatchLoss.toFixed(4);
   trainLossEl!.textContent = trainer.trainLoss.toFixed(4);
   devLossEl!.textContent = trainer.devLoss.toFixed(4);
-  sampleEl!.textContent = manualSample || trainer.sample || '...';
+  sampleEl!.textContent = manualSample || trainer.sample || t.samplePlaceholder;
 
-  dataStatsEl!.textContent = `words=${datasetEl!.value.split(/\r?\n/).filter(Boolean).length} | vocab=${trainer.vocabSize} | train/dev/test=${trainer.trainSize}/${trainer.devSize}/${trainer.testSize}`;
+  dataStatsEl!.textContent = t.dataStatsTemplate.replace('{words}', String(datasetEl!.value.split(/\r?\n/).filter(Boolean).length)).replace('{vocab}', String(trainer.vocabSize)).replace('{train}', String(trainer.trainSize)).replace('{dev}', String(trainer.devSize)).replace('{test}', String(trainer.testSize));
 
   progressBarEl!.style.width = `${Math.min(100, (trainer.step / trainer.maxSteps) * 100)}%`;
-  statusPillEl!.textContent = running ? 'training' : trainer.step >= trainer.maxSteps ? 'completed' : 'idle';
+  statusPillEl!.textContent = running ? t.trainingDynamics.statusTraining : trainer.step >= trainer.maxSteps ? t.trainingDynamics.statusCompleted : t.trainingDynamics.statusIdle;
 
   const showStepDetails = !running;
   const breakdownPanel = breakdownTitleEl!.closest('.panel');
@@ -762,7 +598,7 @@ function render(): void {
   if (tokenBarsPanel) tokenBarsPanel.classList.toggle('hidden', !showStepDetails);
 
   if (showStepDetails) {
-    breakdownTitleEl!.textContent = selectedIterationKey === 'live' ? 'Current Step Breakdown' : `Step ${selectedIterationKey.replace(/^step-/, '')} Breakdown`;
+    breakdownTitleEl!.textContent = selectedIterationKey === 'live' ? t.breakdown.panelTitle : t.breakdown.stepBreakdown.replace('{n}', selectedIterationKey.replace(/^step-/, ''));
 
     const displayTrace = getDisplayTrace();
     traceContextEl!.textContent = `[${displayTrace.context.join(', ')}]`;
@@ -899,14 +735,14 @@ showTransformerDiagramBtn!.addEventListener('click', async () => {
   try {
     await mermaid.run({ nodes: container.querySelectorAll('.mermaid') });
   } catch (err) {
-    container.innerHTML = `<p class="text-sm text-coral">Diagram could not be drawn. Try refreshing.</p>`;
+    container.innerHTML = `<p class="text-sm text-coral">${t.errors.diagramRenderFailed}</p>`;
   }
 });
 
 iterationSelectEl!.addEventListener('change', () => {
   selectedIterationKey = iterationSelectEl!.value;
   const snap = selectedIterationKey !== 'live' ? iterationHistory.find((s) => `step-${s.step}` === selectedIterationKey) : null;
-  iterationStepLabelEl!.textContent = snap ? `train=${snap.trainLoss.toFixed(4)} dev=${snap.devLoss.toFixed(4)}` : '';
+  iterationStepLabelEl!.textContent = snap ? t.iterationSelect.trainDevLabel.replace('{trainLoss}', snap.trainLoss.toFixed(4)).replace('{devLoss}', snap.devLoss.toFixed(4)) : '';
   render();
 });
 
