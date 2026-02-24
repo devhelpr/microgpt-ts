@@ -6,13 +6,32 @@
  */
 export type { LocaleStrings, FlowStageEntry, IllustrationLabels } from './types';
 export { en } from './en';
+export { nl } from './nl';
 export { buildIllustrationSvg } from './illustrations';
 
 import { en } from './en';
+import { nl } from './nl';
 import type { LocaleStrings } from './types';
 
-/** Currently active locale. Replace with a setter/locale detector when adding multilanguage support. */
-export const currentLocale: LocaleStrings = en;
+export type LocaleCode = 'en' | 'nl';
 
-/** Shortcut for current locale strings (e.g. t.header.title). Use currentLocale when you need the full object. */
-export const t = currentLocale;
+let currentLocale: LocaleStrings = en;
+let currentCode: LocaleCode = 'en';
+
+export function setLocale(code: LocaleCode): void {
+  if (code === 'nl') {
+    currentLocale = nl;
+    currentCode = 'nl';
+  } else {
+    currentLocale = en;
+    currentCode = 'en';
+  }
+}
+
+export function getLocale(): LocaleStrings {
+  return currentLocale;
+}
+
+export function getLocaleCode(): LocaleCode {
+  return currentCode;
+}

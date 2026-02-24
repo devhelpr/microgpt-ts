@@ -91,6 +91,11 @@ export const en: LocaleStrings = {
   probabilities: {
     panelTitle: 'Probabilities (Current Step)',
   },
+  languages: {
+    label: 'Language',
+    en: 'English',
+    nl: 'Dutch',
+  },
   iterationSelect: {
     stepLabel: 'Step {n}',
     trainDevLabel: 'train={trainLoss} dev={devLoss}',

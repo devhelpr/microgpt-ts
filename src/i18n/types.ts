@@ -88,6 +88,11 @@ export interface LocaleStrings {
   probabilities: {
     panelTitle: string;
   };
+  languages: {
+    label: string;
+    en: string;
+    nl: string;
+  };
   iterationSelect: {
     stepLabel: string; // "Step {n}"
     trainDevLabel: string; // "train={trainLoss} dev={devLoss}"

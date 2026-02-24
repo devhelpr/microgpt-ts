@@ -1,9 +1,11 @@
 import './style.css';
 import mermaid from 'mermaid';
 import { createMicroGptTrainer, n_layer, n_head, type StepTrace } from '../microgpt';
-import { currentLocale as t, buildIllustrationSvg } from './i18n';
+import { getLocale, setLocale, getLocaleCode, type LocaleCode, buildIllustrationSvg } from './i18n';
 
 const MAX_ITERATION_HISTORY = 50;
+
+let t = getLocale();
 
 function cloneTrace(tr: StepTrace): StepTrace {
   return {
@@ -37,6 +39,14 @@ type IterationSnapshot = {
   devLoss: number;
   batchLoss: number;
 };
+
+// Initialise locale from persisted preference (if any) before building UI.
+const storedLocale = (typeof window !== 'undefined' ? window.localStorage.getItem('locale') : null) as LocaleCode | null;
+if (storedLocale === 'en' || storedLocale === 'nl') {
+  setLocale(storedLocale);
+}
+t = getLocale();
+const localeCode = getLocaleCode();
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error(t.errors.appRootNotFound);
@@ -76,7 +86,19 @@ app.innerHTML = `
       <div class="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-coral/20 blur-3xl"></div>
       <div class="absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-neon/20 blur-2xl"></div>
       <p class="panel-title">${t.header.panelTitle}</p>
-      <h1 class="mt-2 text-3xl font-bold leading-tight md:text-5xl">${t.header.title}</h1>
+      <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-3xl font-bold leading-tight md:text-5xl">${t.header.title}</h1>
+        <div class="flex items-center gap-2 rounded-2xl border border-white/15 bg-black/30 px-3 py-1.5 text-xs text-white/70">
+          <span>${t.languages.label}</span>
+          <select
+            id="localeSelect"
+            class="relative z-10 rounded-lg border border-white/20 bg-black/60 px-2 py-1 text-xs text-white/90 cursor-pointer pointer-events-auto focus:border-neon focus:outline-none"
+          >
+            <option value="en" ${localeCode === 'en' ? 'selected' : ''}>${t.languages.en}</option>
+            <option value="nl" ${localeCode === 'nl' ? 'selected' : ''}>${t.languages.nl}</option>
+          </select>
+        </div>
+      </div>
       <p class="mt-4 max-w-3xl text-sm text-white/75 md:text-base">${t.header.description}</p>
     </header>
 
@@ -243,6 +265,7 @@ const showTransformerDiagramBtn = document.querySelector<HTMLButtonElement>('#sh
 const dialogTransformer = document.querySelector<HTMLDialogElement>('#dialog-transformer');
 const trainingDynamicsInfoBtn = document.querySelector<HTMLButtonElement>('#trainingDynamicsInfoBtn');
 const dialogTrainingDynamics = document.querySelector<HTMLDialogElement>('#dialog-training-dynamics');
+const localeSelectEl = document.querySelector<HTMLSelectElement>('#localeSelect');
 
 if (
   !datasetEl ||
@@ -275,7 +298,8 @@ if (
   !traceGradEl ||
   !breakdownTitleEl ||
   !showTransformerDiagramBtn ||
-  !dialogTransformer
+  !dialogTransformer ||
+  !localeSelectEl
 ) {
   throw new Error(t.errors.missingUiElement);
 }
@@ -685,6 +709,15 @@ resetBtn.addEventListener('click', () => {
 sampleBtn.addEventListener('click', () => {
   manualSample = trainer.generate(42);
   render();
+});
+
+localeSelectEl.addEventListener('change', (e) => {
+  const select = e.target as HTMLSelectElement;
+  const code = select.value as LocaleCode;
+  if (code !== 'en' && code !== 'nl') return;
+  window.localStorage.setItem('locale', code);
+  setLocale(code);
+  window.location.reload();
 });
 
 mermaid.initialize({
