@@ -91,6 +91,8 @@ export const nl: LocaleStrings = {
   },
   probabilities: {
     panelTitle: 'Kansen (huidige stap)',
+    explainer:
+      'Elke rij is een mogelijk volgend token. De balklengte en het getal (0–1) geven de voorspelde kans van het model voor dat token.',
   },
   languages: {
     label: 'Taal',

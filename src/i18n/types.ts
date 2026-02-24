@@ -88,6 +88,7 @@ export interface LocaleStrings {
   };
   probabilities: {
     panelTitle: string;
+    explainer: string;
   };
   languages: {
     label: string;

@@ -91,6 +91,8 @@ export const en: LocaleStrings = {
   },
   probabilities: {
     panelTitle: 'Probabilities (Current Step)',
+    explainer:
+      'Each row is a possible next token. The bar length and the number (0–1) show the model’s predicted probability for that token.',
   },
   languages: {
     label: 'Language',

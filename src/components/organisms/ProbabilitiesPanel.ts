@@ -5,6 +5,7 @@ export function probabilitiesPanelHtml(t: Pick<LocaleStrings, 'probabilities'>):
     <div class="panel p-4">
       <p class="panel-title">${t.probabilities.panelTitle}</p>
       <div id="tokenBars" class="mt-3 space-y-2"></div>
+      <p class="mt-3 text-xs text-white/50">${t.probabilities.explainer}</p>
     </div>
   `;
 }
