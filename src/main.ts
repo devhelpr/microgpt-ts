@@ -34,8 +34,8 @@ const refs = queryRefs(app, t.errors.missingUiElement);
 const trainer = createMicroGptTrainer(refs.dataset.value, {
   blockSize: 16,
   nEmbd: 16,
-  maxSteps: Number(refs.maxSteps.value),
-  evalEvery: Number(refs.evalEvery.value),
+  maxSteps: Math.max(50, Number(refs.maxSteps.value) || 1200),
+  evalEvery: Math.max(5, Number(refs.evalEvery.value) || 24),
   seed: 1337,
 });
 

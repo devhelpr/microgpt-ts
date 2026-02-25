@@ -19,6 +19,18 @@ export function registerEvents(
   diagramErrorMsg: string,
 ): void {
   refs.startBtn.addEventListener('click', () => {
+    // If the user has changed maxSteps/evalEvery before the first run,
+    // recreate the trainer with the new settings on first start.
+    if (!state.running && state.trainer.step === 0) {
+      const desiredMaxSteps = Math.max(50, Number(refs.maxSteps.value) || 1200);
+      const desiredEvalEvery = Math.max(5, Number(refs.evalEvery.value) || 24);
+      if (
+        state.trainer.maxSteps !== desiredMaxSteps ||
+        state.trainer.evalEvery !== desiredEvalEvery
+      ) {
+        onReset();
+      }
+    }
     void onTrainLoop();
   });
 
