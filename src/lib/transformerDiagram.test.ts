@@ -41,12 +41,12 @@ const mockT = {
 describe('buildElements', () => {
   it('returns expected node count', () => {
     const { nodes } = buildElements(mockT);
-    expect(nodes).toHaveLength(15);
+    expect(nodes).toHaveLength(16);
   });
 
   it('returns expected edge count', () => {
     const { edges } = buildElements(mockT);
-    expect(edges).toHaveLength(13);
+    expect(edges).toHaveLength(14);
   });
 
   it('includes all mock labels and explainers in nodes', () => {
@@ -64,16 +64,16 @@ describe('buildElements', () => {
 
   it('replaces {n} in transformerBlock with layer number', () => {
     const { nodes } = buildElements(mockT);
-    const tbNode = nodes.find((n) => n.data.id === 'TB');
-    expect(tbNode).toBeDefined();
-    expect(tbNode!.data.label).toMatch(/Transformer block × \d+.*/);
+    const tbTitleNode = nodes.find((n) => n.data.id === 'TB_TITLE');
+    expect(tbTitleNode).toBeDefined();
+    expect(tbTitleNode!.data.label).toMatch(/Transformer block × \d+.*/);
   });
 
-  it('creates compound structure with TB as parent of G1–G6', () => {
+  it('creates compound structure with TB as parent of TB_TITLE and G1–G6', () => {
     const { nodes } = buildElements(mockT);
     const children = nodes.filter((n) => n.data.parent === 'TB');
-    expect(children).toHaveLength(6);
-    expect(children.map((c) => c.data.id).sort()).toEqual(['G1', 'G2', 'G3', 'G4', 'G5', 'G6']);
+    expect(children).toHaveLength(7);
+    expect(children.map((c) => c.data.id).sort()).toEqual(['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'TB_TITLE']);
   });
 
   it('creates edges in correct order', () => {
@@ -81,7 +81,8 @@ describe('buildElements', () => {
     const edgeIds = edges.map((e) => e.data.id);
     expect(edgeIds).toContain('A-B');
     expect(edgeIds).toContain('E-F');
-    expect(edgeIds).toContain('F-G1');
+    expect(edgeIds).toContain('F-TB_TITLE');
+    expect(edgeIds).toContain('TB_TITLE-G1');
     expect(edgeIds).toContain('G5-G6');
     expect(edgeIds).toContain('G6-H');
     expect(edgeIds).toContain('H-I');
