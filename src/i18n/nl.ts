@@ -25,7 +25,14 @@ export const nl: LocaleStrings = {
     softmax: { logits: 'logits', raw: '(ruw)', expSum: 'exp / Σ', probsSum1: 'kansen Σ = 1' },
     loss: { pTarget: 'p(doel)', probability: 'kans', negLog: '−log(·)', L: 'L', loss: 'verlies' },
     backprop: { params: 'parameters', gradLabel: '∂L∕∂', L: 'L', backward: 'backward' },
-    update: { param: 'parameter', adam: 'Adam', adamFormula: 'm,v ← grad · parameter −= lr·m̂/√v̂', updated: 'bijgewerkt' },
+    update: {
+      param: 'parameter',
+      grad: 'grad',
+      adam: 'Adam',
+      adamMomentum: 'm,v uit g',
+      adamUpdate: 'param −= lr·m̂/(√v̂+ε)',
+      updated: 'bijgewerkt',
+    },
   },
   explainerBodies: {
     dataset: `We beginnen met een lijst namen (één per regel). Die lijst wordt opgesplitst in drie delen: <strong>train</strong>, <strong>dev</strong> en <strong>test</strong>. Het model leert alleen van de train‑set. De dev‑set vertelt ons hoe goed het gaat tijdens het trainen (bijv. de “dev loss” die je ziet). De test‑set bewaren we tot het eind om de uiteindelijke prestatie te meten. Typisch gebruiken we ~80% voor train, 10% voor dev en 10% voor test.`,
@@ -35,7 +42,7 @@ export const nl: LocaleStrings = {
     softmax: `Het netwerk produceert ruwe scores (logits). We hebben kansen nodig: “hoe waarschijnlijk is elk teken als volgende?”. <strong>Softmax</strong> doet dat. Het zet logits om in getallen tussen 0 en 1 die samen precies 1 zijn (een kansverdeling). De formule: elke kans = exp(logit) gedeeld door de som van exp over alle logits. Tijdens training proberen we de kans op het juiste volgende teken zo hoog mogelijk te maken.`,
     loss: `We willen één getal dat zegt “hoe fout was de voorspelling?”. Dat is de <strong>loss</strong>. Hier gebruiken we <strong>cross‑entropy</strong>: <code>L = -log(kans die we aan het juiste teken gaven)</code>. Was het model zelfverzekerd én correct, dan is die kans hoog en de loss laag. Was het fout of onzeker, dan is de loss hoger. Training probeert deze loss in de tijd te verlagen.`,
     backprop: `Als we de loss hebben, moeten we weten hoe we elke gewicht in het netwerk moeten aanpassen om die loss te verlagen. <strong>Backpropagation</strong> doet dat: het loopt vanaf de loss achteruit door alle lagen (attention, MLP, embeddings) en berekent een <strong>gradiënt</strong> voor elke parameter. De gradiënt geeft de richting en ongeveer de grootte van de aanpassing aan. De “gradient norm” die je ziet is één getal dat samenvat hoe groot die gradiënten gemiddeld zijn.<br/><br/><strong>Wat betekent ∂L∕∂?</strong> Het symbool <strong>∂L∕∂</strong> (lees: "partiële d L over partiële d …") is de calculusnotatie voor <em>hoeveel de loss L verandert als je één parameter verandert</em>. Voor elk gewicht krijgen we een getal: <code>∂L∕∂(gewicht)</code>. Is dat getal positief, dan zou het verhogen van het gewicht de loss verhogen (dus verlagen we het gewicht). Is het negatief, dan verhogen we het gewicht. ∂L∕∂ is dus precies de gradiënt: het zegt per parameter welke kant we op moeten om de loss te verlagen.`,
-    update: `We hebben nu gradiënten; nu passen we de gewichten echt aan. We gebruiken <strong>Adam</strong>, een populaire optimizer. Die houdt per parameter een soort “geheugen” (momentum) en “spreiding” (variantie) bij en werkt elk gewicht bij met de learning rate en die termen: <code>param -= lr · m_hat / (√v_hat + ε)</code>. De learning rate wordt vaak gedurende de training kleiner (bijv. lineaire afbouw), zodat de stappen naar het einde toe kleiner worden.`,
+    update: `We hebben nu gradiënten; nu passen we de gewichten echt aan. We gebruiken <strong>Adam</strong> (Adaptive Moment Estimation), een veelgebruikte optimizer die twee ideeën combineert: <strong>momentum</strong> en <strong>adaptieve leer snelheden per parameter</strong>.<br/><br/>Per parameter houdt Adam twee lopende gemiddelden bij: <strong>m</strong> (eerste moment, als momentum) vlak de gradiëntrichting af zodat we niet heen en weer slingeren; <strong>v</strong> (tweede moment) volgt het gekwadrateerde gradiënt, zodat parameters met grote gradiënten kleinere effectieve stappen krijgen. De update-regels zijn: <code>m = β₁·m + (1−β₁)·g</code> en <code>v = β₂·v + (1−β₂)·g²</code>, waarbij <em>g</em> de gradiënt is. Adam past ook <strong>bias-correctie</strong> toe (m en v delen door termen als <code>1−β₁^t</code>) omdat deze gemiddelden vroeg in de training nabij nul beginnen. De finale update is <code>param -= lr · m̂ / (√v̂ + ε)</code>, waarbij m̂ en v̂ de bias-gecorrigeerde momenten zijn. De kleine ε (bijv. 1e-8) voorkomt deling door nul.<br/><br/>Hier gebruiken we β₁=0,85 en β₂=0,99. De learning rate neemt typisch af tijdens training (bijv. lineaire decay), zodat de stappen naar het einde toe kleiner worden.`,
   },
   aria: {
     close: 'Sluiten',

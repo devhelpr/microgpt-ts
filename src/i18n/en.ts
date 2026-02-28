@@ -25,7 +25,14 @@ export const en: LocaleStrings = {
     softmax: { logits: 'logits', raw: '(raw)', expSum: 'exp / Σ', probsSum1: 'probs Σ = 1' },
     loss: { pTarget: 'p(target)', probability: 'probability', negLog: '−log(·)', L: 'L', loss: 'loss' },
     backprop: { params: 'params', gradLabel: '∂L∕∂', L: 'L', backward: 'backward' },
-    update: { param: 'param', adam: 'Adam', adamFormula: 'm,v ← grad · param −= lr·m̂/√v̂', updated: 'updated' },
+    update: {
+      param: 'param',
+      grad: 'grad',
+      adam: 'Adam',
+      adamMomentum: 'm,v from g',
+      adamUpdate: 'param −= lr·m̂/(√v̂+ε)',
+      updated: 'updated',
+    },
   },
   explainerBodies: {
     dataset: `We start with a list of names (one per line). That list is split into three parts: <strong>train</strong>, <strong>dev</strong>, and <strong>test</strong>. The model learns only from the train set. The dev set tells us how well it's doing while we train (e.g. the "dev loss" you see). The test set is kept aside until the end to measure final performance. Usually we use about 80% for training, 10% for dev, and 10% for test.`,
@@ -35,7 +42,7 @@ export const en: LocaleStrings = {
     softmax: `The network outputs raw scores (logits). We need probabilities: "how likely is each character to come next?" <strong>Softmax</strong> does that. It turns the logits into numbers between 0 and 1 that add up to 1 (like a proper probability distribution). The formula is: each probability = exp(logit) divided by the sum of exp of all logits. Training tries to make the probability of the correct next character as high as possible.`,
     loss: `We need one number that says "how wrong was the prediction?" That's the <strong>loss</strong>. Here we use <strong>cross-entropy</strong>: <code>L = -log(probability we gave to the correct character)</code>. If the model was confident and right, that probability is high and the loss is low. If it was wrong or unsure, the loss is higher. Training aims to make this loss smaller over time.`,
     backprop: `After we have the loss, we need to know how to change every weight in the network to reduce it. <strong>Backpropagation</strong> does that: it works backward from the loss through every layer (attention, MLP, embeddings) and computes a <strong>gradient</strong> for each parameter. The gradient tells us the direction and (roughly) how much to adjust. The "gradient norm" you see is a single number summarizing how big those gradients are.<br/><br/><strong>What does ∂L∕∂ mean?</strong> The symbol <strong>∂L∕∂</strong> (read "partial d L over partial d …") is calculus notation for <em>how much the loss L changes when you change one parameter</em>. For each weight we get a number: <code>∂L∕∂(weight)</code>. If that number is positive, increasing the weight would increase the loss (so we decrease the weight). If it's negative, we increase the weight. So ∂L∕∂ is exactly the gradient: it tells us, for every parameter, which way to nudge it to reduce the loss.`,
-    update: `We have gradients; now we actually change the weights. We use <strong>Adam</strong>, a popular optimizer. It keeps a little "memory" (momentum) and "spread" (variance) per parameter, then updates each weight using the learning rate and those terms: <code>param -= lr · m_hat / (√v_hat + ε)</code>. The learning rate often gets smaller over training (e.g. linear decay), so steps are smaller near the end.`,
+    update: `We have gradients; now we actually change the weights. We use <strong>Adam</strong> (Adaptive Moment Estimation), a widely used optimizer that combines two ideas: <strong>momentum</strong> and <strong>per-parameter adaptive learning rates</strong>.<br/><br/>For each parameter, Adam keeps two running averages: <strong>m</strong> (first moment, like momentum) smooths the gradient direction over time so we don't zigzag; <strong>v</strong> (second moment) tracks the squared gradient, so parameters that get big gradients get smaller effective steps. The update rules are: <code>m = β₁·m + (1−β₁)·g</code> and <code>v = β₂·v + (1−β₂)·g²</code>, where <em>g</em> is the gradient. Adam also applies <strong>bias correction</strong> (dividing m and v by terms like <code>1−β₁^t</code>) because early in training these running averages start near zero. The final update is <code>param -= lr · m̂ / (√v̂ + ε)</code>, where m̂ and v̂ are the bias-corrected moments. The tiny ε (e.g. 1e-8) avoids division by zero.<br/><br/>Here we use β₁=0.85 and β₂=0.99. The learning rate typically decays over training (e.g. linear decay), so steps become smaller near the end.`,
   },
   aria: {
     close: 'Close',

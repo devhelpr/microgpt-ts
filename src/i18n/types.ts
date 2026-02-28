@@ -21,7 +21,14 @@ export type IllustrationLabels = {
   softmax: { logits: string; raw: string; expSum: string; probsSum1: string };
   loss: { pTarget: string; probability: string; negLog: string; L: string; loss: string };
   backprop: { params: string; gradLabel: string; L: string; backward: string };
-  update: { param: string; adam: string; adamFormula: string; updated: string };
+  update: {
+    param: string;
+    grad: string;
+    adam: string;
+    adamMomentum: string;
+    adamUpdate: string;
+    updated: string;
+  };
 };
 
 export interface LocaleStrings {

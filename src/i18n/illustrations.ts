@@ -99,16 +99,18 @@ export function buildIllustrationSvg(stageId: string, labels: IllustrationLabels
       <text x="264" y="52" text-anchor="middle" fill="currentColor" font-size="12" font-weight="700">${L.backprop.L}</text>
       <text x="150" y="84" text-anchor="middle" fill="currentColor" font-size="9" opacity="0.75">${L.backprop.backward}</text>
     </svg>`,
-    update: `<svg viewBox="0 0 300 118" class="explainer-illo w-full max-w-sm mx-auto h-28 text-neon/90" aria-hidden="true">${arrowMarker}
-      <rect x="8" y="28" width="72" height="40" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
-      <text x="44" y="52" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">${L.update.param}</text>
-      <path d="M88 48 L132 48" ${strokeArrow}/>
-      <rect x="136" y="12" width="128" height="56" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
-      <text x="200" y="34" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">${L.update.adam}</text>
-      <text x="200" y="50" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.85">${L.update.adamFormula}</text>
-      <path d="M264 76 L264 92" ${strokeLine}/>
-      <rect x="218" y="96" width="92" height="20" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
-      <text x="264" y="110" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600">${L.update.updated}</text>
+    update: `<svg viewBox="0 0 360 100" class="explainer-illo w-full max-w-sm mx-auto h-28 text-neon/90" aria-hidden="true">${arrowMarker}
+      <rect x="8" y="22" width="64" height="56" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <text x="40" y="42" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">${L.update.param}</text>
+      <text x="40" y="58" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.8">+ ${L.update.grad}</text>
+      <path d="M76 50 L98 50" ${strokeArrow}/>
+      <rect x="102" y="8" width="156" height="84" rx="8" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"/>
+      <text x="180" y="28" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">${L.update.adam}</text>
+      <text x="180" y="48" text-anchor="middle" fill="currentColor" font-size="8" opacity="0.9">${L.update.adamMomentum}</text>
+      <text x="180" y="64" text-anchor="middle" fill="currentColor" font-size="8" font-family="monospace" opacity="0.9">${L.update.adamUpdate}</text>
+      <path d="M262 50 L284 50" ${strokeArrow}/>
+      <rect x="288" y="22" width="64" height="56" rx="8" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.5"/>
+      <text x="320" y="50" text-anchor="middle" fill="currentColor" font-size="10" font-weight="600">${L.update.updated}</text>
     </svg>`,
   };
   return svgs[stageId] ?? '';
