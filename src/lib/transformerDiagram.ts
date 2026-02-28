@@ -5,34 +5,39 @@ import type { LocaleStrings } from '../i18n/types';
 
 cytoscape.use(dagre);
 
+const INFO_ICON = '\u24D8'; // ⓘ
+
 const ACCENT = '#44f2d9';
 const BG_DARK = '#0f172a';
 const NODE_BG = '#1e293b';
 const TEXT = '#e2e8f0';
 const BORDER = '#64748b';
 
+type TransformerDiagramLocale = Pick<LocaleStrings, 'mermaid' | 'transformerDiagramExplainers'>;
+
 /** Build Cytoscape elements from locale labels. Same structure as the original Mermaid flowchart. */
-export function buildElements(t: Pick<LocaleStrings, 'mermaid'>) {
+export function buildElements(t: TransformerDiagramLocale) {
   const M = t.mermaid;
+  const E = t.transformerDiagramExplainers;
   const tbLabel = M.transformerBlock.replace('{n}', String(n_layer));
 
   return {
     nodes: [
-      { data: { id: 'A', label: M.whichCharacter } },
-      { data: { id: 'B', label: M.turnCharIntoVector } },
-      { data: { id: 'C', label: M.whichPosition } },
-      { data: { id: 'D', label: M.addPositionAsVector } },
-      { data: { id: 'E', label: M.combineBoth } },
-      { data: { id: 'F', label: M.stabilizeScale } },
-      { data: { id: 'TB', label: tbLabel } },
-      { data: { id: 'G1', label: M.stabilize, parent: 'TB' } },
-      { data: { id: 'G2', label: M.attentionMixContext, parent: 'TB' } },
-      { data: { id: 'G3', label: M.addShortcut, parent: 'TB' } },
-      { data: { id: 'G4', label: M.stabilize, parent: 'TB' } },
-      { data: { id: 'G5', label: M.smallFeedForward, parent: 'TB' } },
-      { data: { id: 'G6', label: M.addShortcut, parent: 'TB' } },
-      { data: { id: 'H', label: M.predictNextChar } },
-      { data: { id: 'I', label: M.scoresForEachChar } },
+      { data: { id: 'A', label: `${M.whichCharacter} ${INFO_ICON}`, explainer: E.A } },
+      { data: { id: 'B', label: `${M.turnCharIntoVector} ${INFO_ICON}`, explainer: E.B } },
+      { data: { id: 'C', label: `${M.whichPosition} ${INFO_ICON}`, explainer: E.C } },
+      { data: { id: 'D', label: `${M.addPositionAsVector} ${INFO_ICON}`, explainer: E.D } },
+      { data: { id: 'E', label: `${M.combineBoth} ${INFO_ICON}`, explainer: E.E } },
+      { data: { id: 'F', label: `${M.stabilizeScale} ${INFO_ICON}`, explainer: E.F } },
+      { data: { id: 'TB', label: `${tbLabel} ${INFO_ICON}`, explainer: E.TB } },
+      { data: { id: 'G1', label: `${M.stabilize} ${INFO_ICON}`, explainer: E.G1, parent: 'TB' } },
+      { data: { id: 'G2', label: `${M.attentionMixContext} ${INFO_ICON}`, explainer: E.G2, parent: 'TB' } },
+      { data: { id: 'G3', label: `${M.addShortcut} ${INFO_ICON}`, explainer: E.G3, parent: 'TB' } },
+      { data: { id: 'G4', label: `${M.stabilize} ${INFO_ICON}`, explainer: E.G4, parent: 'TB' } },
+      { data: { id: 'G5', label: `${M.smallFeedForward} ${INFO_ICON}`, explainer: E.G5, parent: 'TB' } },
+      { data: { id: 'G6', label: `${M.addShortcut} ${INFO_ICON}`, explainer: E.G6, parent: 'TB' } },
+      { data: { id: 'H', label: `${M.predictNextChar} ${INFO_ICON}`, explainer: E.H } },
+      { data: { id: 'I', label: `${M.scoresForEachChar} ${INFO_ICON}`, explainer: E.I } },
     ],
     edges: [
       { data: { id: 'A-B', source: 'A', target: 'B' } },
@@ -71,6 +76,39 @@ function stopEdgeFlowAnimation() {
   }
 }
 
+function createPopup(container: HTMLElement): { backdrop: HTMLDivElement; popup: HTMLDivElement } {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'transformer-diagram-popup-backdrop';
+  backdrop.setAttribute('aria-hidden', 'true');
+  backdrop.hidden = true;
+
+  const popup = document.createElement('div');
+  popup.className = 'transformer-diagram-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-modal', 'true');
+  popup.setAttribute('aria-labelledby', 'transformer-diagram-popup-content');
+
+  const content = document.createElement('p');
+  content.id = 'transformer-diagram-popup-content';
+  content.className = 'transformer-diagram-popup-content';
+  popup.appendChild(content);
+
+  backdrop.appendChild(popup);
+  container.appendChild(backdrop);
+
+  return { backdrop, popup };
+}
+
+function showPopup(backdrop: HTMLDivElement, popup: HTMLDivElement, text: string): void {
+  const content = popup.querySelector('.transformer-diagram-popup-content');
+  if (content) content.textContent = text;
+  backdrop.hidden = false;
+}
+
+function hidePopup(backdrop: HTMLDivElement): void {
+  backdrop.hidden = true;
+}
+
 /**
  * Renders the transformer architecture diagram into the given container.
  * Supports animation, interaction, and full control over styling.
@@ -78,7 +116,7 @@ function stopEdgeFlowAnimation() {
  */
 export function renderTransformerDiagram(
   container: HTMLElement,
-  t: Pick<LocaleStrings, 'mermaid'>,
+  t: TransformerDiagramLocale,
 ): void {
   const existing = (container as HTMLElement & { _cy?: Core })._cy;
   if (existing) {
@@ -176,6 +214,21 @@ export function renderTransformerDiagram(
   });
 
   (container as HTMLElement & { _cy?: Core })._cy = cy;
+
+  const { backdrop, popup } = createPopup(container);
+
+  cy.on('tap', 'node', (evt) => {
+    const explainer = evt.target.data('explainer');
+    if (explainer) showPopup(backdrop, popup, explainer);
+  });
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) hidePopup(backdrop);
+  });
+
+  cy.on('tap', (evt) => {
+    if (evt.target === cy) hidePopup(backdrop);
+  });
 
   cy.one('layoutstop', () => {
     cy.fit(undefined, 40);

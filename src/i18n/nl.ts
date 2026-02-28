@@ -168,6 +168,23 @@ export const nl: LocaleStrings = {
     predictNextChar: 'Voorspel volgend teken',
     scoresForEachChar: 'Scores voor elk teken',
   },
+  transformerDiagramExplainers: {
+    A: 'Invoer: welk teken staat op deze positie? bijv. "a" in "anna".',
+    B: 'Elk teken wordt afgebeeld op een vector van getallen (embedding).',
+    C: 'Invoer: waar in de reeks? bijv. 1e, 2e, 3e teken.',
+    D: 'Positie wordt als vector gecodeerd en opgeteld; het model kent zo de volgorde.',
+    E: 'Karakter-embedding + positie-embedding worden gecombineerd.',
+    F: 'LayerNorm: normaliseert waarden voor stabielere training.',
+    TB: 'De kern: self-attention laat elke positie naar alle andere kijken, daarna een kleine MLP.',
+    G1: 'LayerNorm vóór attention.',
+    G2: 'Self-attention: elke positie kan naar relevante anderen "kijken" voor context.',
+    G3: 'Residual: voeg de invoer weer toe voor betere gradientenstroom.',
+    G4: 'LayerNorm vóór de MLP.',
+    G5: 'Kleine feed-forward laag (twee lineaire lagen met activatie).',
+    G6: 'Residual: voeg de invoer opnieuw toe.',
+    H: 'Laatste lineaire laag mapt de vector naar scores over het vocabulaire.',
+    I: 'Uitvoer: een score per mogelijk volgend teken; de hoogste is de voorspelling.',
+  },
   dialogs: {
     trainingDynamics: {
       title: 'De grafiek van de trainingsdynamiek begrijpen',

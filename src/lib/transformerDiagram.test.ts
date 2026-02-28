@@ -1,6 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { buildElements } from './transformerDiagram';
 
+const mockExplainers = {
+  A: 'Explainer for A',
+  B: 'Explainer for B',
+  C: 'Explainer for C',
+  D: 'Explainer for D',
+  E: 'Explainer for E',
+  F: 'Explainer for F',
+  TB: 'Explainer for TB',
+  G1: 'Explainer for G1',
+  G2: 'Explainer for G2',
+  G3: 'Explainer for G3',
+  G4: 'Explainer for G4',
+  G5: 'Explainer for G5',
+  G6: 'Explainer for G6',
+  H: 'Explainer for H',
+  I: 'Explainer for I',
+};
+
 const mockT = {
   mermaid: {
     whichCharacter: 'Which character?',
@@ -17,6 +35,7 @@ const mockT = {
     predictNextChar: 'Predict next char',
     scoresForEachChar: 'Scores for each char',
   },
+  transformerDiagramExplainers: mockExplainers,
 };
 
 describe('buildElements', () => {
@@ -30,22 +49,24 @@ describe('buildElements', () => {
     expect(edges).toHaveLength(13);
   });
 
-  it('includes all mock labels in nodes', () => {
+  it('includes all mock labels and explainers in nodes', () => {
     const { nodes } = buildElements(mockT);
     const labels = nodes.map((n) => n.data.label);
-    expect(labels).toContain('Which character?');
-    expect(labels).toContain('Which position?');
-    expect(labels).toContain('Turn char into vector');
-    expect(labels).toContain('Combine both');
-    expect(labels).toContain('Stabilize');
-    expect(labels).toContain('Scores for each char');
+    expect(labels.some((l) => l.includes('Which character?'))).toBe(true);
+    expect(labels.some((l) => l.includes('Which position?'))).toBe(true);
+    expect(labels.some((l) => l.includes('Turn char into vector'))).toBe(true);
+    expect(labels.some((l) => l.includes('Combine both'))).toBe(true);
+    expect(labels.some((l) => l.includes('Stabilize'))).toBe(true);
+    expect(labels.some((l) => l.includes('Scores for each char'))).toBe(true);
+    const nodeA = nodes.find((n) => n.data.id === 'A');
+    expect(nodeA?.data.explainer).toBe('Explainer for A');
   });
 
   it('replaces {n} in transformerBlock with layer number', () => {
     const { nodes } = buildElements(mockT);
     const tbNode = nodes.find((n) => n.data.id === 'TB');
     expect(tbNode).toBeDefined();
-    expect(tbNode!.data.label).toMatch(/Transformer block × \d+/);
+    expect(tbNode!.data.label).toMatch(/Transformer block × \d+.*/);
   });
 
   it('creates compound structure with TB as parent of G1–G6', () => {

@@ -168,6 +168,23 @@ export const en: LocaleStrings = {
     predictNextChar: 'Predict next character',
     scoresForEachChar: 'Scores for each character',
   },
+  transformerDiagramExplainers: {
+    A: 'Input: which character is at this position? e.g. "a" in "anna".',
+    B: 'Each character is mapped to a vector of numbers (embedding).',
+    C: 'Input: where in the sequence? e.g. 1st, 2nd, 3rd character.',
+    D: 'Position is encoded as a vector and added so the model knows order.',
+    E: 'Character embedding + position embedding are combined.',
+    F: 'LayerNorm: normalizes values so training is more stable.',
+    TB: 'The core block: self-attention lets each position attend to all others, then a small MLP.',
+    G1: 'LayerNorm before attention.',
+    G2: 'Self-attention: each position can "look at" relevant others to gather context.',
+    G3: 'Residual: add the input back so gradients flow better.',
+    G4: 'LayerNorm before the MLP.',
+    G5: 'Small feed-forward network (two linear layers with activation).',
+    G6: 'Residual: add the input back again.',
+    H: 'Final linear layer maps the vector to scores over the vocabulary.',
+    I: 'Output: a score for each possible next character; highest score is the prediction.',
+  },
   dialogs: {
     trainingDynamics: {
       title: 'Understanding the Training Dynamics Graph',

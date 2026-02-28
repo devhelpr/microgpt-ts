@@ -164,6 +164,23 @@ export interface LocaleStrings {
     predictNextChar: string;
     scoresForEachChar: string;
   };
+  transformerDiagramExplainers: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+    E: string;
+    F: string;
+    TB: string;
+    G1: string;
+    G2: string;
+    G3: string;
+    G4: string;
+    G5: string;
+    G6: string;
+    H: string;
+    I: string;
+  };
   dialogs: {
     trainingDynamics: {
       title: string;
