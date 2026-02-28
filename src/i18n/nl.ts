@@ -200,6 +200,7 @@ export const nl: LocaleStrings = {
       title: 'Hoe het model één stap ziet',
       description: 'Een <strong class="text-neon">transformer</strong> is een neuraal netwerk dat tekst verwerkt, bijvoorbeeld de letters in een naam, door elk teken (1e, 2e, 3e, enzovoort) naar alle andere te laten &ldquo;kijken&rdquo;. Anders dan gewone feed-forward netwerken, die één teken tegelijk verwerken, of recurrent netwerken (RNN&rsquo;s), die stap voor stap werken en moeite hebben met lange tekst, zien transformers alle tekens tegelijk. Voeg <strong>attention</strong> toe, waarbij elk teken naar relevante andere kan &ldquo;kijken&rdquo;, en je krijgt een model dat goed werkt voor taal. Bij een naam als &ldquo;anna&rdquo; leest het model niet letter voor letter. Het ziet de hele string en laat elk teken de interpretatie van de rest beïnvloeden.',
       intro: 'De data stroomt <strong class="text-neon">van boven naar beneden</strong>. We beginnen met “welk teken?” en “waar in de naam?”, zetten die om in vectoren, combineren en normaliseren, en voeren dat door het transformerblok (attention + kleine MLP). Uiteindelijk krijgen we scores voor het volgende teken.',
+      diagramHint: 'Sleep om te pannen, scroll om in te zoomen.',
       oneForwardPassNote: 'Dit is één “forward pass” voor één teken; dezelfde structuur herhaalt zich voor elk teken dat het model voorspelt.',
     },
   },

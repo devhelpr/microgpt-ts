@@ -115,21 +115,16 @@ code,
 
 /* Cytoscape diagram in transformer modal */
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  display: block;
   width: 100%;
   height: 600px;
+  position: relative;
 }
 
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer > div {
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   border-radius: 0.5rem;
-}
-
-.transformer-dialog .transformer-dialog-content #transformerDiagramContainer {
-  position: relative;
 }
 
 .transformer-diagram-popup-backdrop {

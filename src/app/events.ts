@@ -66,6 +66,7 @@ export function registerEvents(
     if (!container) return;
     container.innerHTML = '';
     refs.dialogTransformer.showModal();
+    refs.dialogTransformer.querySelector('.transformer-dialog-content')?.scrollTo(0, 0);
     try {
       renderDiagram(container);
     } catch {

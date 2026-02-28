@@ -232,9 +232,17 @@ export function renderTransformerDiagram(
   });
 
   cy.one('layoutstop', () => {
-    cy.fit(undefined, 40);
+    const padding = 40;
+    cy.fit(undefined, padding);
     const zoom = cy.zoom();
     if (zoom < 1) cy.zoom(Math.min(1.15, 1 / zoom));
+    const extent = cy.extent();
+    const pan = cy.pan();
+    const zoomFinal = cy.zoom();
+    const topRendered = extent.y1 * zoomFinal + pan.y;
+    if (topRendered !== padding) {
+      cy.panBy({ x: 0, y: padding - topRendered });
+    }
   });
 
   startEdgeFlowAnimation(cy);

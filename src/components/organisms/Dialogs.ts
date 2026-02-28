@@ -34,7 +34,10 @@ export function transformerDialogHtml(t: Pick<LocaleStrings, 'dialogs' | 'aria'>
         </div>
         <p class="mt-2 text-base text-white/75 leading-relaxed">${d.description}</p>
         <p class="mt-3 text-base text-white/75 leading-relaxed">${d.intro}</p>
-        <div id="transformerDiagramContainer" class="mt-6 flex justify-center overflow-auto rounded-xl border border-white/10 bg-black/30 p-6 min-h-[420px] min-w-0"></div>
+        <div class="mt-6">
+          <p class="mb-2 text-xs text-white/50">${d.diagramHint}</p>
+          <div id="transformerDiagramContainer" class="overflow-hidden rounded-xl border border-white/10 bg-black/30 p-2 min-h-[420px] min-w-0"></div>
+        </div>
         <p class="mt-4 text-sm text-white/55">${d.oneForwardPassNote}</p>
       </div>
     </dialog>

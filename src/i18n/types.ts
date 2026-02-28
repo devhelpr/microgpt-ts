@@ -196,6 +196,7 @@ export interface LocaleStrings {
       title: string;
       description: string;
       intro: string;
+      diagramHint: string;
       oneForwardPassNote: string;
     };
   };
