@@ -3,6 +3,25 @@ import type { FlowStage } from '../../types';
 import { stepExplainerDialogHtml } from '../molecules/ExplainerDialog';
 import type { IllustrationLabels } from '../../i18n/types';
 
+export function generatedNameDialogHtml(t: Pick<LocaleStrings, 'dialogs' | 'aria'>): string {
+  const d = t.dialogs.generatedName;
+  return `
+    <dialog id="dialog-generated-name" class="rounded-2xl border border-white/15 bg-slate/98 p-0 shadow-2xl backdrop:bg-black/70" aria-labelledby="dialog-generated-name-title" aria-modal="true">
+      <div class="max-h-[90vh] overflow-y-auto p-6">
+        <div class="flex items-start justify-between gap-4">
+          <h2 id="dialog-generated-name-title" class="text-xl font-bold text-white">${d.title}</h2>
+          <button type="button" class="dialog-close rounded-lg border border-white/20 p-2 text-white/80 hover:bg-white/10 hover:text-white transition" aria-label="${t.aria.close}">✕</button>
+        </div>
+        <div class="mt-4 space-y-4 text-base text-white/85 leading-relaxed [&_strong]:text-neon">
+          <p><strong>${d.whatItDoes}</strong><br/>${d.whatItDoesBody}</p>
+          <p><strong>${d.howItWorks}</strong><br/>${d.howItWorksBody}</p>
+          <p class="text-sm"><strong>${d.lastGeneratedLabel}:</strong> <span id="generateExplainerLastOutput" class="font-mono text-neon">${d.lastGeneratedEmpty}</span></p>
+        </div>
+      </div>
+    </dialog>
+  `;
+}
+
 export function trainingDynamicsDialogHtml(t: Pick<LocaleStrings, 'dialogs' | 'aria'>): string {
   const d = t.dialogs.trainingDynamics;
   return `

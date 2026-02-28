@@ -7,6 +7,7 @@ export { breakdownPanelHtml } from './BreakdownPanel';
 export { probabilitiesPanelHtml } from './ProbabilitiesPanel';
 export { stageVisualHtml } from './StageVisual';
 export {
+  generatedNameDialogHtml,
   trainingDynamicsDialogHtml,
   transformerDialogHtml,
   stageDialogsHtml,

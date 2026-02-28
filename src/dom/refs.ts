@@ -7,6 +7,8 @@ export function queryRefs(root: HTMLElement, missingError: string): DOMRefs {
     return el;
   };
 
+  const generateInfoBtn = root.querySelector<HTMLButtonElement>('#generateInfoBtn');
+  const dialogGeneratedName = root.querySelector<HTMLDialogElement>('#dialog-generated-name');
   const trainingDynamicsInfoBtn = root.querySelector<HTMLButtonElement>('#trainingDynamicsInfoBtn');
   const dialogTrainingDynamics = root.querySelector<HTMLDialogElement>('#dialog-training-dynamics');
 
@@ -43,6 +45,8 @@ export function queryRefs(root: HTMLElement, missingError: string): DOMRefs {
     breakdownTitle: get<HTMLElement>('#breakdownTitle'),
     showTransformerDiagramBtn: get<HTMLButtonElement>('#showTransformerDiagramBtn'),
     dialogTransformer: get<HTMLDialogElement>('#dialog-transformer'),
+    generateInfoBtn,
+    dialogGeneratedName,
     trainingDynamicsInfoBtn,
     dialogTrainingDynamics,
     localeSelect: get<HTMLSelectElement>('#localeSelect'),

@@ -57,6 +57,14 @@ export function registerEvents(
     }
   });
 
+  refs.generateInfoBtn?.addEventListener('click', () => {
+    const lastOutputEl = document.getElementById('generateExplainerLastOutput');
+    if (lastOutputEl) {
+      lastOutputEl.textContent = state.manualSample || t.dialogs.generatedName.lastGeneratedEmpty;
+    }
+    refs.dialogGeneratedName?.showModal();
+  });
+
   refs.trainingDynamicsInfoBtn?.addEventListener('click', () => {
     refs.dialogTrainingDynamics?.showModal();
   });

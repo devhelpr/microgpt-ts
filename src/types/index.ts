@@ -48,6 +48,8 @@ export interface DOMRefs {
   breakdownTitle: HTMLElement;
   showTransformerDiagramBtn: HTMLButtonElement;
   dialogTransformer: HTMLDialogElement;
+  generateInfoBtn: HTMLButtonElement | null;
+  dialogGeneratedName: HTMLDialogElement | null;
   trainingDynamicsInfoBtn: HTMLButtonElement | null;
   dialogTrainingDynamics: HTMLDialogElement | null;
   localeSelect: HTMLSelectElement;

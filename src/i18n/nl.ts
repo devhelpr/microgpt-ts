@@ -51,6 +51,7 @@ export const nl: LocaleStrings = {
   generatedName: {
     panelTitle: 'Gegenereerde naam',
     generate: 'Genereer',
+    infoBtn: 'Uitleg wat de Genereer-knop doet',
   },
   controls: {
     panelTitle: 'Besturing',
@@ -202,6 +203,15 @@ export const nl: LocaleStrings = {
       intro: 'De data stroomt <strong class="text-neon">van boven naar beneden</strong>. We beginnen met “welk teken?” en “waar in de naam?”, zetten die om in vectoren, combineren en normaliseren, en voeren dat door het transformerblok (attention + kleine MLP). Uiteindelijk krijgen we scores voor het volgende teken.',
       diagramHint: 'Sleep om te pannen, scroll om in te zoomen.',
       oneForwardPassNote: 'Dit is één “forward pass” voor één teken; dezelfde structuur herhaalt zich voor elk teken dat het model voorspelt.',
+    },
+    generatedName: {
+      title: 'Hoe de Genereer-knop werkt',
+      whatItDoes: 'Wat hij doet',
+      whatItDoesBody: 'De Genereer-knop laat het getrainde model een nieuwe naam of woord produceren. Het model krijgt steeds één teken per stap en voorspelt het volgende teken totdat het stopt (of de maximale lengte bereikt). De uitvoer die je ziet wordt live gegenereerd met de huidige modelgewichten.',
+      howItWorks: 'Hoe de uitvoer tot stand komt',
+      howItWorksBody: 'Het model start met een speciaal begintoken. Bij elke stap: (1) voert het een forward pass door de transformer uit om scores voor elk teken in het vocabulaire te krijgen, (2) die scores worden met softmax en temperatuur 0,5 omgezet in kansen, en (3) er wordt willekeurig één teken uit die verdeling gesamplet. Dat teken wordt aan de reeks toegevoegd en als invoer voor de volgende stap gebruikt. Het stopt wanneer het model een eindtoken voorspelt of na 42 tekens. Lagere temperatuur betekent voorspelbaardere uitvoer; hoger zou meer variatie (en soms vreemdere namen) geven.',
+      lastGeneratedLabel: 'Laatste gegenereerde uitvoer',
+      lastGeneratedEmpty: '—',
     },
   },
   samplePlaceholder: '...',

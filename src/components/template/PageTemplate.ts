@@ -8,6 +8,7 @@ import {
   algorithmPanelHtml,
   breakdownPanelHtml,
   probabilitiesPanelHtml,
+  generatedNameDialogHtml,
   trainingDynamicsDialogHtml,
   transformerDialogHtml,
   stageDialogsHtml,
@@ -38,6 +39,7 @@ export function pageTemplateHtml(
     <section class="grid gap-4 lg:grid-cols-1">
       ${probabilitiesPanelHtml(t)}
     </section>
+    ${generatedNameDialogHtml(t)}
     ${trainingDynamicsDialogHtml(t)}
     ${transformerDialogHtml(t)}
     ${stageDialogs}

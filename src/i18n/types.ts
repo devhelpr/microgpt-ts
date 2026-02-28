@@ -48,6 +48,7 @@ export interface LocaleStrings {
   generatedName: {
     panelTitle: string;
     generate: string;
+    infoBtn: string; // aria-label for info icon
   };
   controls: {
     panelTitle: string;
@@ -198,6 +199,15 @@ export interface LocaleStrings {
       intro: string;
       diagramHint: string;
       oneForwardPassNote: string;
+    };
+    generatedName: {
+      title: string;
+      whatItDoes: string;
+      whatItDoesBody: string;
+      howItWorks: string;
+      howItWorksBody: string;
+      lastGeneratedLabel: string;
+      lastGeneratedEmpty: string;
     };
   };
   samplePlaceholder: string; // "..." when no sample yet

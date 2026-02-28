@@ -51,6 +51,7 @@ export const en: LocaleStrings = {
   generatedName: {
     panelTitle: 'Generated name',
     generate: 'Generate',
+    infoBtn: 'Explain what the Generate button does',
   },
   controls: {
     panelTitle: 'Controls',
@@ -202,6 +203,15 @@ export const en: LocaleStrings = {
       intro: 'Data flows <strong class="text-neon">top to bottom</strong>. We start with &ldquo;which character?&rdquo; and &ldquo;where in the name?&rdquo;, turn them into vectors, combine and normalize, then run the transformer block (attention + small MLP). Finally we get scores for the next character.',
       diagramHint: 'Drag to pan, scroll to zoom.',
       oneForwardPassNote: 'This is one &ldquo;forward pass&rdquo; for a single character slot; the same structure repeats for each character the model predicts.',
+    },
+    generatedName: {
+      title: 'How the Generate Button Works',
+      whatItDoes: 'What it does',
+      whatItDoesBody: 'The Generate button runs your trained model to produce a new name or word. It feeds the model one character at a time, and the model predicts the next character until it stops (or reaches the maximum length). The output you see is generated live using the current model weights.',
+      howItWorks: 'How it produces the output',
+      howItWorksBody: 'The model starts from a special beginning token, then at each step: (1) it runs a forward pass through the transformer to get scores for every character in the vocabulary, (2) those scores are turned into probabilities using softmax with temperature 0.5, and (3) it randomly samples one character from that distribution. That character is appended to the sequence and fed as input for the next step. It stops when the model predicts an end token or after 42 characters. Lower temperature means more deterministic output; higher would mean more varied (and sometimes weirder) names.',
+      lastGeneratedLabel: 'Last generated output',
+      lastGeneratedEmpty: '—',
     },
   },
   samplePlaceholder: '...',
