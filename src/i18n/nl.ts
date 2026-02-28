@@ -77,7 +77,7 @@ export const nl: LocaleStrings = {
     panelTitle: 'Hoe het algoritme werkt',
     review: 'Terugkijken:',
     live: 'Live',
-    viewTransformerDiagram: 'Bekijk transformerdiagram',
+    viewTransformerDiagram: 'Leg de transformerstructuur en flow uit',
   },
   breakdown: {
     panelTitle: 'Huidige stap in detail',

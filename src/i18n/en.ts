@@ -77,7 +77,7 @@ export const en: LocaleStrings = {
     panelTitle: 'How The Algorithm Works',
     review: 'Review:',
     live: 'Live',
-    viewTransformerDiagram: 'View transformer diagram',
+    viewTransformerDiagram: 'Explain the transformer structure and flow',
   },
   breakdown: {
     panelTitle: 'Current Step Breakdown',
