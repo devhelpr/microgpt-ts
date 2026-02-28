@@ -1,5 +1,4 @@
 import './style.css';
-import mermaid from 'mermaid';
 import { createMicroGptTrainer } from '../microgpt';
 import { getLocale, setLocale, getLocaleCode, type LocaleCode, buildIllustrationSvg } from './i18n';
 import { queryRefs } from './dom/refs';
@@ -9,7 +8,7 @@ import { createInitialState } from './app/state';
 import { trainLoop, resetTrainer } from './app/trainLoop';
 import { render } from './app/render';
 import { registerEvents } from './app/events';
-import { getTransformerMermaidCode, mermaidThemeConfig } from './lib/mermaid';
+import { renderTransformerDiagram, destroyTransformerDiagram } from './lib/transformerDiagram';
 
 // Initialise locale from persisted preference (if any) before reading locale strings.
 const storedLocale = (typeof window !== 'undefined' ? window.localStorage.getItem('locale') : null) as LocaleCode | null;
@@ -41,8 +40,6 @@ const trainer = createMicroGptTrainer(refs.dataset.value, {
 
 const state = createInitialState(trainer);
 
-mermaid.initialize(mermaidThemeConfig);
-
 registerEvents(
   app,
   state,
@@ -51,10 +48,8 @@ registerEvents(
   flowStages,
   () => trainLoop(state, refs, t),
   () => resetTrainer(state, refs, t, createMicroGptTrainer),
-  () => getTransformerMermaidCode(t),
-  async (container) => {
-    await mermaid.run({ nodes: container.querySelectorAll('.mermaid') });
-  },
+  (container) => renderTransformerDiagram(container, t),
+  destroyTransformerDiagram,
   t.errors.diagramRenderFailed,
 );
 

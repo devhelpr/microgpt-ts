@@ -14,8 +14,8 @@ export function registerEvents(
   flowStages: FlowStage[],
   onTrainLoop: () => void,
   onReset: () => void,
-  getMermaidCode: () => string,
-  runMermaid: (container: HTMLElement) => Promise<void>,
+  renderDiagram: (container: HTMLElement) => void,
+  destroyDiagram: (container: HTMLElement) => void,
   diagramErrorMsg: string,
 ): void {
   refs.startBtn.addEventListener('click', () => {
@@ -61,16 +61,21 @@ export function registerEvents(
     refs.dialogTrainingDynamics?.showModal();
   });
 
-  refs.showTransformerDiagramBtn.addEventListener('click', async () => {
+  refs.showTransformerDiagramBtn.addEventListener('click', () => {
     const container = document.getElementById('transformerDiagramContainer');
     if (!container) return;
-    container.innerHTML = `<div class="mermaid">${getMermaidCode()}</div>`;
+    container.innerHTML = '';
     refs.dialogTransformer.showModal();
     try {
-      await runMermaid(container);
+      renderDiagram(container);
     } catch {
       container.innerHTML = `<p class="text-sm text-coral">${diagramErrorMsg}</p>`;
     }
+  });
+
+  refs.dialogTransformer.addEventListener('close', () => {
+    const container = document.getElementById('transformerDiagramContainer');
+    if (container) destroyDiagram(container);
   });
 
   refs.iterationSelect.addEventListener('change', () => {

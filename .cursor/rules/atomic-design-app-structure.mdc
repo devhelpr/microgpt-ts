@@ -13,7 +13,7 @@ alwaysApply: false
 - **App** (`app/`): State, render, trainLoop, events only. No UI markup here.
 - **main.ts**: Bootstrap only — locale init, inject template, queryRefs, create state, registerEvents, one render().
 
-**Where code lives**: Types in `types/`; pure utils in `lib/` (e.g. cloneTrace, chart, mermaid); DOM refs in `dom/refs.ts`. Keep `microgpt` imports in main, app, and organisms that need trainer (e.g. StageVisual).
+**Where code lives**: Types in `types/`; pure utils in `lib/` (e.g. cloneTrace, chart, transformerDiagram); DOM refs in `dom/refs.ts`. Keep `microgpt` imports in main, app, and organisms that need trainer (e.g. StageVisual).
 
 **Naming**: When both locale and trace are in scope, use `t` for locale and `tr` for trace to avoid shadowing.
 

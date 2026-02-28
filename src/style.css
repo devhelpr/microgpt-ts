@@ -113,30 +113,17 @@ code,
   scrollbar-width: thin;
 }
 
-/* Mermaid diagram in transformer modal */
+/* Cytoscape diagram in transformer modal */
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  width: 100%;
+  height: 600px;
 }
 
-.transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid {
-  display: flex;
-  justify-content: center;
-  min-width: min-content;
-}
-
-.transformer-dialog .transformer-dialog-content #transformerDiagramContainer svg {
-  max-width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
-.transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid svg {
-  color: var(--tw-prose-body, inherit);
-}
-
-/* Larger font for diagram labels */
-.transformer-dialog .transformer-dialog-content #transformerDiagramContainer foreignObject {
-  font-size: 1.1em !important;
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem;
 }
