@@ -8,6 +8,8 @@ alwaysApply: false
 
 All user-facing text must come from the locale layer so the app can support multiple languages later.
 
+Prevent em-dashes from being used, make texts human readable and natural.
+
 ## Where strings live
 
 - **`src/i18n/types.ts`** – Defines `LocaleStrings` and related types. Every new string key is declared here.

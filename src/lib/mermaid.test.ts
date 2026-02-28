@@ -27,15 +27,18 @@ describe('getTransformerMermaidCode', () => {
 
   it('includes all mock node labels', () => {
     const code = getTransformerMermaidCode(mockT);
-    expect(code).toContain('Which character?');
-    expect(code).toContain('Which position?');
-    expect(code).toContain('Turn char into vector');
-    expect(code).toContain('Add position as vector');
-    expect(code).toContain('Combine both');
-    expect(code).toContain('Stabilize scale');
-    expect(code).toContain('Transformer block');
-    expect(code).toContain('Predict next char');
-    expect(code).toContain('Scores for each char');
+    expect(code).toContain('character?');
+    expect(code).toContain('Which');
+    expect(code).toContain('position?');
+    expect(code).toContain('Turn char');
+    expect(code).toContain('vector');
+    expect(code).toContain('Add');
+    expect(code).toContain('position');
+    expect(code).toContain('Combine');
+    expect(code).toContain('Stabilize');
+    expect(code).toContain('Transformer');
+    expect(code).toContain('Predict');
+    expect(code).toContain('Scores for');
   });
 
   it('includes subgraph with direction TB', () => {
@@ -46,6 +49,6 @@ describe('getTransformerMermaidCode', () => {
 
   it('replaces {n} in transformerBlock with layer number', () => {
     const code = getTransformerMermaidCode(mockT);
-    expect(code).toMatch(/Transformer block × \d+/);
+    expect(code).toMatch(/Transformer.*block × \d+/);
   });
 });

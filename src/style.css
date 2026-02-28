@@ -56,7 +56,7 @@ code,
 
 /* HTML5 dialog explainers */
 .explainer-dialog {
-  max-width: min(32rem, 95vw);
+  max-width: min(44rem, 95vw);
   margin: auto;
 }
 
@@ -67,6 +67,11 @@ code,
 
 .explainer-dialog .explainer-dialog-content {
   scrollbar-width: thin;
+}
+
+.training-dynamics-dialog {
+  max-width: min(44rem, 95vw);
+  margin: auto;
 }
 
 .explainer-illo {
@@ -91,7 +96,7 @@ code,
 
 /* Transformer diagram modal */
 .transformer-dialog {
-  max-width: min(36rem, 95vw);
+  max-width: min(48rem, 95vw);
   margin: auto;
 }
 
@@ -118,13 +123,20 @@ code,
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid {
   display: flex;
   justify-content: center;
+  min-width: min-content;
 }
 
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer svg {
   max-width: 100%;
   height: auto;
+  overflow: visible;
 }
 
 .transformer-dialog .transformer-dialog-content #transformerDiagramContainer .mermaid svg {
   color: var(--tw-prose-body, inherit);
+}
+
+/* Larger font for diagram labels */
+.transformer-dialog .transformer-dialog-content #transformerDiagramContainer foreignObject {
+  font-size: 1.1em !important;
 }

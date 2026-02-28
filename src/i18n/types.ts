@@ -177,6 +177,7 @@ export interface LocaleStrings {
     };
     transformer: {
       title: string;
+      description: string;
       intro: string;
       oneForwardPassNote: string;
     };
