@@ -70,7 +70,7 @@ code,
 
 /* HTML5 dialog explainers */
 .explainer-dialog {
-  max-width: min(44rem, 95vw);
+  max-width: min(56rem, 95vw);
   margin: auto;
 }
 
@@ -91,6 +91,15 @@ code,
 .explainer-illo {
   color: inherit;
   shape-rendering: geometricPrecision;
+  min-height: 10rem;
+  min-width: 20rem;
+  object-fit: contain;
+}
+
+.explainer-illo-wrapper {
+  min-width: 20rem;
+  min-height: 10rem;
+  width: 100%;
 }
 
 .explainer-dialog[open] {

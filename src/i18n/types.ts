@@ -13,10 +13,15 @@ export type IllustrationLabels = {
   encode: { charA: string; charN: string; id0: string; id1: string };
   context: { next: string; pos0: string; block: string };
   forward: {
+    tokens: string;
     embed: string;
+    embedHint: string;
     attn: string;
+    attnHint: string;
     mlp: string;
+    mlpHint: string;
     logits: string;
+    logitsHint: string;
   };
   softmax: { logits: string; raw: string; expSum: string; probsSum1: string };
   loss: { pTarget: string; probability: string; negLog: string; L: string; loss: string };
