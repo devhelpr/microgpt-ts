@@ -55,7 +55,7 @@ export function renderFlow(
       ? state.selectedStageIndex
       : state.running
         ? state.phaseCursor
-        : flowStages.length - 1;
+        : -1;
   const trace = getDisplayTrace(state);
   flowStages.forEach((stage, i) => {
     const el = refs.flowGrid.querySelector<HTMLElement>(`#flow-${stage.id}`);
@@ -63,9 +63,9 @@ export function renderFlow(
     el.classList.toggle('active', i === activeIdx);
     el.classList.toggle('flow-node-selected', state.selectedStageIndex === i);
   });
-  const active = flowStages[activeIdx] ?? flowStages[0];
-  refs.flowDetail.textContent = `${active.title}: ${active.description}`;
-  refs.flowVisual.innerHTML = stageVisualHtml(active.id, trace, state.trainer, t);
+  const active = activeIdx >= 0 ? flowStages[activeIdx] : null;
+  refs.flowDetail.textContent = active ? `${active.title}: ${active.description}` : '';
+  refs.flowVisual.innerHTML = active ? stageVisualHtml(active.id, trace, state.trainer, t) : '';
 }
 
 export function render(state: AppState, refs: DOMRefs, t: LocaleStrings): void {
